@@ -12,6 +12,7 @@ int get_fps() {
 
 int main (){
   _ioe_init();
+  init_screen();
   int num_draw = 0, frames = 0;
   unsigned long next_frame = 0, next_refresh = 0;
   while(1) {
@@ -19,7 +20,7 @@ int main (){
     bool redraw = false;
 
     while (1) {
-      time = _uptime();
+      time = uptime();
       if (time >= next_frame) break;
     }
     frames ++;

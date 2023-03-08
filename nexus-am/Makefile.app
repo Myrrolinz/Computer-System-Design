@@ -1,38 +1,41 @@
-.DEFAULT_GOAL = app
-
-include $(AM_HOME)/Makefile.check
-$(info Building $(NAME) [$(ARCH)])
-
 APP_DIR ?= $(shell pwd)
 INC_DIR += $(APP_DIR)/include/
 DST_DIR ?= $(APP_DIR)/build/$(ARCH)/
-BINARY ?= $(APP_DIR)/build/$(NAME)-$(ARCH)
+BINARY  ?= $(APP_DIR)/build/$(NAME)-$(ARCH)
+BINARY_REL = $(shell realpath $(BINARY) --relative-to .)
 
+## Paste in "Makefile.check" here
+include $(AM_HOME)/Makefile.check
+$(info # Building $(NAME) [$(ARCH)] with AM_HOME {$(AM_HOME)})
+
+## Default: Build a runnable image
+default: image
+
+LIBS    += klib
 INC_DIR += $(addsuffix /include/, $(addprefix $(AM_HOME)/libs/, $(LIBS)))
 
-$(shell mkdir -p $(DST_DIR))
-
-LIBS += klib # link klib by default
-
+## Paste in "Makefile.compile" here
 include $(AM_HOME)/Makefile.compile
 
-ifeq ($(ARCH), native)
-LINKLIBS = $(filter-out klib, $(LIBS))
-else
-LINKLIBS = $(LIBS)
-endif
-
-LINK_FILES += $(AM_HOME)/am/build/am-$(ARCH).a $(OBJS)
-LINK_FILES += $(addsuffix -$(ARCH).a, $(join \
-  $(addsuffix /build/, $(addprefix $(AM_HOME)/libs/, $(LINKLIBS))), \
-  $(LINKLIBS) \
+## Produce a list of files to be linked: app objects, AM, and libraries
+LINK_LIBS  = $(sort $(LIBS))
+LINK_FILES = \
+  $(OBJS) \
+  $(AM_HOME)/am/build/am-$(ARCH).a \
+  $(addsuffix -$(ARCH).a, $(join \
+    $(addsuffix /build/, $(addprefix $(AM_HOME)/libs/, $(LINK_LIBS))), \
+    $(LINK_LIBS) \
 ))
 
-.PHONY: app run clean
-app: $(OBJS) am $(LIBS)
-	@bash $(AM_HOME)/am/arch/$(ARCH)/img/build $(BINARY) $(LINK_FILES)
-run: app
-	@bash $(AM_HOME)/am/arch/$(ARCH)/img/run $(BINARY)
+$(OBJS): $(PREBUILD)
+image:   $(OBJS) am $(LIBS) prompt
+prompt:  $(OBJS) am $(LIBS)
+run:     default
+
+prompt:
+	@echo \# Creating binary image [$(ARCH)]
 
 clean: 
 	rm -rf $(APP_DIR)/build/
+
+.PHONY: default run image prompt clean

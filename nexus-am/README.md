@@ -9,10 +9,6 @@
 * `apps/`：一些运行在AM上应用程序示例。
 * `tests/`: 用来测试AM实现的简单测试程序。
 
-## AM Specification
-
-参考：[AM Specification](SPEC.md)。
-
 ## 创建一个AM应用
 
 在任何目录都可以创建运行在AM上的应用程序。程序用C/C++语言编写，除AM之外无法调用其他库函数（但可以引用`stdarg.h`, `limits.h`等包含体系结构相关数据定义的头文件）。
@@ -29,7 +25,6 @@ include $(AM_HOME)/Makefile.app
 
 * `NAME`定义了应用的名字。编译后会在`build/`目录里出现以此命名的应用程序。
 * `SRCS`指定了编译应用所需的源文件。可以放在应用目录中的任意位置。
-
 
 * 应用目录下的`include/`目录会被添加到编译的`-I`选项中。
 * 环境变量`AM_HOME`需要包含**nexus-am项目的根目录的绝对路径**。

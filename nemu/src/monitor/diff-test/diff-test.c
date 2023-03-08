@@ -1,157 +1,138 @@
+#include <dlfcn.h>
+
 #include "nemu.h"
 #include "monitor/monitor.h"
-#include <unistd.h>
-#include <sys/prctl.h>
-#include <signal.h>
 
-#include "protocol.h"
-#include <stdlib.h>
+void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
+void (*ref_difftest_getregs)(void *c) = NULL;
+void (*ref_difftest_setregs)(const void *c) = NULL;
+void (*ref_difftest_exec)(uint64_t n) = NULL;
 
-bool gdb_connect_qemu(void);
-bool gdb_memcpy_to_qemu(uint32_t, void *, int);
-bool gdb_getregs(union gdb_regs *);
-bool gdb_setregs(union gdb_regs *);
-bool gdb_si(void);
-void gdb_exit(void);
+static bool is_skip_ref = false;
+static int skip_dut_nr_instr = 0;
+static bool is_detach = false;
 
-static bool is_skip_qemu;
-static bool is_skip_nemu;
+// this is used to let ref skip instructions which
+// can not produce consistent behavior with NEMU
+void difftest_skip_ref() {
+  is_skip_ref = true;
+  // If such an instruction is one of the instruction packing in QEMU
+  // (see below), we end the process of catching up with QEMU's pc to
+  // keep the consistent behavior in our best.
+  // Note that this is still not perfect: if the packed instructions
+  // already write some memory, and the incoming instruction in NEMU
+  // will load that memory, we will encounter false negative. But such
+  // situation is infrequent.
+  skip_dut_nr_instr = 0;
+}
 
-void diff_test_skip_qemu() { is_skip_qemu = true; }
-void diff_test_skip_nemu() { is_skip_nemu = true; }
+// this is used to deal with instruction packing in QEMU.
+// Sometimes letting QEMU step once will execute multiple instructions.
+// We should skip checking until NEMU's pc catches up with QEMU's pc.
+// The semantic is
+//   Let REF run `nr_ref` instructions first.
+//   We expect that DUT will catch up with REF within `nr_dut` instructions.
+void difftest_skip_dut(int nr_ref, int nr_dut) {
+  skip_dut_nr_instr += nr_dut;
 
-#define regcpy_from_nemu(regs) \
-  do { \
-    regs.eax = cpu.eax; \
-    regs.ecx = cpu.ecx; \
-    regs.edx = cpu.edx; \
-    regs.ebx = cpu.ebx; \
-    regs.esp = cpu.esp; \
-    regs.ebp = cpu.ebp; \
-    regs.esi = cpu.esi; \
-    regs.edi = cpu.edi; \
-    regs.eip = cpu.eip; \
-  } while (0)
-
-static uint8_t mbr[] = {
-  // start16:
-  0xfa,                           // cli
-  0x31, 0xc0,                     // xorw   %ax,%ax
-  0x8e, 0xd8,                     // movw   %ax,%ds
-  0x8e, 0xc0,                     // movw   %ax,%es
-  0x8e, 0xd0,                     // movw   %ax,%ss
-  0x0f, 0x01, 0x16, 0x44, 0x7c,   // lgdt   gdtdesc
-  0x0f, 0x20, 0xc0,               // movl   %cr0,%eax
-  0x66, 0x83, 0xc8, 0x01,         // orl    $CR0_PE,%eax
-  0x0f, 0x22, 0xc0,               // movl   %eax,%cr0
-  0xea, 0x1d, 0x7c, 0x08, 0x00,   // ljmp   $GDT_ENTRY(1),$start32
-
-  // start32:
-  0x66, 0xb8, 0x10, 0x00,         // movw   $0x10,%ax
-  0x8e, 0xd8,                     // movw   %ax, %ds
-  0x8e, 0xc0,                     // movw   %ax, %es
-  0x8e, 0xd0,                     // movw   %ax, %ss
-  0xeb, 0xfe,                     // jmp    7c27
-  0x8d, 0x76, 0x00,               // lea    0x0(%esi),%esi
-
-  // GDT
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0xff, 0xff, 0x00, 0x00, 0x00, 0x9a, 0xcf, 0x00,
-  0xff, 0xff, 0x00, 0x00, 0x00, 0x92, 0xcf, 0x00,
-
-  // GDT descriptor
-  0x17, 0x00, 0x2c, 0x7c, 0x00, 0x00
-};
-
-void init_difftest(void) {
-  int ppid_before_fork = getpid();
-  int pid = fork();
-  if (pid == -1) {
-    perror("fork");
-    panic("fork error");
-  }
-  else if (pid == 0) {
-    // child
-
-    // install a parent death signal in the chlid
-    int r = prctl(PR_SET_PDEATHSIG, SIGTERM);
-    if (r == -1) {
-      perror("prctl error");
-      panic("prctl");
-    }
-
-    if (getppid() != ppid_before_fork) {
-      panic("parent has died!");
-    }
-
-    close(STDIN_FILENO);
-    execlp("qemu-system-i386", "qemu-system-i386", "-S", "-s", "-nographic", NULL);
-    perror("exec");
-    panic("exec error");
-  }
-  else {
-    // father
-
-    gdb_connect_qemu();
-    Log("Connect to QEMU successfully");
-
-    atexit(gdb_exit);
-
-    // put the MBR code to QEMU to enable protected mode
-    bool ok = gdb_memcpy_to_qemu(0x7c00, mbr, sizeof(mbr));
-    assert(ok == 1);
-
-    union gdb_regs r;
-    gdb_getregs(&r);
-
-    // set cs:eip to 0000:7c00
-    r.eip = 0x7c00;
-    r.cs = 0x0000;
-    ok = gdb_setregs(&r);
-    assert(ok == 1);
-
-    // execute enough instructions to enter protected mode
-    int i;
-    for (i = 0; i < 20; i ++) {
-      gdb_si();
-    }
+  while (nr_ref -- > 0) {
+    ref_difftest_exec(1);
   }
 }
 
-void init_qemu_reg() {
-  union gdb_regs r;
-  gdb_getregs(&r);
-  regcpy_from_nemu(r);
-  bool ok = gdb_setregs(&r);
-  assert(ok == 1);
+bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
+void isa_difftest_attach(void);
+
+void init_difftest(char *ref_so_file, long img_size) {
+#ifndef DIFF_TEST
+  return;
+#endif
+
+  assert(ref_so_file != NULL);
+
+  void *handle;
+  handle = dlopen(ref_so_file, RTLD_LAZY | RTLD_DEEPBIND);
+  assert(handle);
+
+  ref_difftest_memcpy_from_dut = dlsym(handle, "difftest_memcpy_from_dut");
+  assert(ref_difftest_memcpy_from_dut);
+
+  ref_difftest_getregs = dlsym(handle, "difftest_getregs");
+  assert(ref_difftest_getregs);
+
+  ref_difftest_setregs = dlsym(handle, "difftest_setregs");
+  assert(ref_difftest_setregs);
+
+  ref_difftest_exec = dlsym(handle, "difftest_exec");
+  assert(ref_difftest_exec);
+
+  void (*ref_difftest_init)(void) = dlsym(handle, "difftest_init");
+  assert(ref_difftest_init);
+
+  Log("Differential testing: \33[1;32m%s\33[0m", "ON");
+  Log("The result of every instruction will be compared with %s. "
+      "This will help you a lot for debugging, but also significantly reduce the performance. "
+      "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
+
+  ref_difftest_init();
+  ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
+  char *mainargs = guest_to_host(0);
+  ref_difftest_memcpy_from_dut(PC_START - IMAGE_START, mainargs, strlen(mainargs) + 1);
+  ref_difftest_setregs(&cpu);
 }
 
-void difftest_step(uint32_t eip) {
-  union gdb_regs r;
-  bool diff = false;
+static void checkregs(CPU_state *ref, vaddr_t pc) {
+  if (!isa_difftest_checkregs(ref, pc)) {
+    extern void isa_reg_display(void);
+    isa_reg_display();
+    nemu_state.state = NEMU_ABORT;
+    nemu_state.halt_pc = pc;
+  }
+}
 
-  if (is_skip_nemu) {
-    is_skip_nemu = false;
+void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
+  CPU_state ref_r;
+
+  if (is_detach) return;
+
+  if (skip_dut_nr_instr > 0) {
+    ref_difftest_getregs(&ref_r);
+    if (ref_r.pc == next_pc) {
+      checkregs(&ref_r, next_pc);
+      skip_dut_nr_instr = 0;
+      return;
+    }
+    skip_dut_nr_instr --;
+    if (skip_dut_nr_instr == 0)
+      panic("can not catch up with ref.pc = %x at pc = %x", ref_r.pc, ori_pc);
     return;
   }
 
-  if (is_skip_qemu) {
-    // to skip the checking of an instruction, just copy the reg state to qemu
-    gdb_getregs(&r);
-    regcpy_from_nemu(r);
-    gdb_setregs(&r);
-    is_skip_qemu = false;
+  if (is_skip_ref) {
+    // to skip the checking of an instruction, just copy the reg state to reference design
+    ref_difftest_setregs(&cpu);
+    is_skip_ref = false;
     return;
   }
 
-  gdb_si();
-  gdb_getregs(&r);
+  ref_difftest_exec(1);
+  ref_difftest_getregs(&ref_r);
 
-  // TODO: Check the registers state with QEMU.
-  // Set `diff` as `true` if they are not the same.
-  TODO();
+  checkregs(&ref_r, ori_pc);
+}
 
-  if (diff) {
-    nemu_state = NEMU_END;
-  }
+void difftest_detach() {
+  is_detach = true;
+}
+
+void difftest_attach() {
+#ifndef DIFF_TEST
+  return;
+#endif
+
+  is_detach = false;
+  is_skip_ref = false;
+  skip_dut_nr_instr = 0;
+
+  isa_difftest_attach();
 }

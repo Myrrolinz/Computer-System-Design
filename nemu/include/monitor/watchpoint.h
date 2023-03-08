@@ -8,8 +8,9 @@ typedef struct watchpoint {
   struct watchpoint *next;
 
   /* TODO: Add more members if necessary */
-
-
+  char str[100];
+  uint32_t value;
+  int hit;
 } WP;
 
 #endif

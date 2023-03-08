@@ -1,4 +1,5 @@
 #include "game.h"
+#include <amdev.h>
 
 /* a-z对应的键盘扫描码 */
 
@@ -37,17 +38,17 @@ int last_key_code(void) {
 
 #define KEYDOWN_MASK 0x8000
 bool keyboard_event() {
-  int keycode = _read_key();
-  if (keycode == _KEY_NONE) return false;
+  int keycode = read_key();
+  if ((keycode & ~KEYDOWN_MASK) == _KEY_NONE) return false;
 
-  if((keycode & KEYDOWN_MASK) != 0){
+  if ((keycode & KEYDOWN_MASK) != 0) {
     key_code = keycode & ~KEYDOWN_MASK;
     press_key(key_code);
     return true;
   }
-  else{
-    for(int i = 0; i < 26; i++){
-      if(keycode == letter_code[i]){
+  else {
+    for (int i = 0; i < 26; i++) {
+      if (keycode == letter_code[i]) {
         release_key(i);
       }
     }
