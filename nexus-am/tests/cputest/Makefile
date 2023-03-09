@@ -13,11 +13,9 @@ Makefile.%: tests/%.c latest
 	-@make -s -f $@ ARCH=$(ARCH) $(MAKECMDGOALS)
 	-@rm -f Makefile.$*
 
-# cancel rules included by $(AM_HOME)/Makefile.check
-image: ;
-default $(MAKECMDGOALS): all ;
+run: all
 
-clean:
+clean: 
 	rm -rf Makefile.* build/
 
 latest:

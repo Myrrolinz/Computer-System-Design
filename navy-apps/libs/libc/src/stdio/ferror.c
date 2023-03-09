@@ -17,20 +17,19 @@
 
 /*
 FUNCTION
-<<ferror>>, <<ferror_unlocked>>---test whether read/write error has occurred
+<<ferror>>---test whether read/write error has occurred
 
 INDEX
 	ferror
-INDEX
-	ferror_unlocked
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 	int ferror(FILE *<[fp]>);
 
-	#define _BSD_SOURCE
+TRAD_SYNOPSIS
 	#include <stdio.h>
-	int ferror_unlocked(FILE *<[fp]>);
+	int ferror(<[fp]>)
+	FILE *<[fp]>;
 
 DESCRIPTION
 The <<stdio>> functions maintain an error indicator with each file
@@ -40,23 +39,12 @@ Use <<ferror>> to query this indicator.
 
 See <<clearerr>> to reset the error indicator.
 
-<<ferror_unlocked>> is a non-thread-safe version of <<ferror>>.
-<<ferror_unlocked>> may only safely be used within a scope
-protected by flockfile() (or ftrylockfile()) and funlockfile().  This
-function may safely be used in a multi-threaded program if and only
-if they are called while the invoking thread owns the (FILE *)
-object, as is the case after a successful call to the flockfile() or
-ftrylockfile() functions.  If threads are disabled, then
-<<ferror_unlocked>> is equivalent to <<ferror>>.
-
 RETURNS
 <<ferror>> returns <<0>> if no errors have occurred; it returns a
 nonzero value otherwise.
 
 PORTABILITY
 ANSI C requires <<ferror>>.
-
-<<ferror_unlocked>> is a BSD extension also provided by GNU libc.
 
 No supporting OS subroutines are required.
 */
@@ -65,21 +53,15 @@ No supporting OS subroutines are required.
 static char sccsid[] = "%W% (Berkeley) %G%";
 #endif /* LIBC_SCCS and not lint */
 
-#include <_ansi.h>
 #include <stdio.h>
-#include "local.h"
 
 /* A subroutine version of the macro ferror.  */
 
 #undef ferror
 
 int
-ferror (FILE * fp)
+_DEFUN (ferror, (fp),
+	FILE * fp)
 {
-  int result;
-  CHECK_INIT(_REENT, fp);
-  _newlib_flockfile_start (fp);
-  result = __sferror (fp);
-  _newlib_flockfile_end (fp);
-  return result;
+  return __sferror (fp);
 }

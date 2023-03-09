@@ -12,11 +12,20 @@ INDEX
 INDEX
 	_raise_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <signal.h>
 	int raise(int <[sig]>);
 
 	int _raise_r(void *<[reent]>, int <[sig]>);
+
+TRAD_SYNOPSIS
+	#include <signal.h>
+	int raise(<[sig]>)
+	int <[sig]>;
+
+	int _raise_r(<[reent]>, <[sig]>)
+	char *<[reent]>;
+	int <[sig]>;
 
 DESCRIPTION
 Send the signal <[sig]> (one of the macros from `<<sys/signal.h>>').
@@ -40,7 +49,7 @@ to vary from one implementation to another.
 Required OS subroutines: <<getpid>>, <<kill>>.
 */
 
-#ifndef SIGNAL_PROVIDED
+#ifdef SIMULATED_SIGNALS
 
 int _dummy_raise;
 
@@ -52,7 +61,8 @@ int _dummy_raise;
 #ifndef _REENT_ONLY
 
 int
-raise (int sig)
+_DEFUN (raise, (sig),
+	int sig)
 {
   return _raise_r (_REENT, sig);
 }
@@ -60,10 +70,11 @@ raise (int sig)
 #endif
 
 int
-_raise_r (struct _reent *reent,
+_DEFUN (_raise_r, (reent, sig),
+	struct _reent *reent _AND
 	int sig)
 {
   return _kill_r (reent, _getpid_r (reent), sig);
 }
 
-#endif /* SIGNAL_PROVIDED */
+#endif /* ! SIMULATED_SIGNALS */

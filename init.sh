@@ -1,7 +1,5 @@
 #!/bin/bash
 
-version=ics2019
-
 log=""
 
 function init() {
@@ -11,7 +9,7 @@ function init() {
   fi
 
   while [ ! -d $1 ]; do
-    git clone -b $version https://github.com/NJU-ProjectN/$1.git
+    git clone -b ics2017 https://github.com/NJU-ProjectN/$1.git
   done
   log="$log$1 `cd $1 && git log --oneline --no-abbrev-commit -n1`"$'\n'
   rm -rf $1/.git
@@ -29,14 +27,12 @@ case $input in
     init nexus-am AM_HOME
     init nanos-lite
     init navy-apps NAVY_HOME
+    source ~/.bashrc
 
     git add -A
-    git commit -am "$version initialized"$'\n\n'"$log"
+    git commit -am "ics2017 initialized"$'\n\n'"$log"
 
     echo "Initialization finishes!"
-    echo "By default this script will add environment variables into ~/.bashrc."
-    echo "After that, please run 'source ~/.bashrc' to let these variables take effect."
-    echo "If you use shell other than bash, please add these environment variables manually."
     ;;
 
   [nN])

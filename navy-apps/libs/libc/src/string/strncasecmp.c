@@ -1,13 +1,20 @@
 /*
 FUNCTION
-	<<strncasecmp>>---case-insensitive character string compare
+	<<strncasecmp>>---case insensitive character string compare
 	
 INDEX
 	strncasecmp
 
-SYNOPSIS
-	#include <strings.h>
+ANSI_SYNOPSIS
+	#include <string.h>
 	int strncasecmp(const char *<[a]>, const char * <[b]>, size_t <[length]>);
+
+TRAD_SYNOPSIS
+	#include <string.h>
+	int strncasecmp(<[a]>, <[b]>, <[length]>)
+	char *<[a]>;
+	char *<[b]>;
+	size_t <[length]>
 
 DESCRIPTION
 	<<strncasecmp>> compares up to <[length]> characters
@@ -17,7 +24,7 @@ DESCRIPTION
 RETURNS
 
 	If <<*<[a]>>> sorts lexicographically after <<*<[b]>>> (after
-	both are converted to lowercase), <<strncasecmp>> returns a
+	both are converted to upper case), <<strncasecmp>> returns a
 	number greater than zero.  If the two strings are equivalent,
 	<<strncasecmp>> returns zero.  If <<*<[a]>>> sorts
 	lexicographically before <<*<[b]>>>, <<strncasecmp>> returns a
@@ -27,27 +34,31 @@ PORTABILITY
 <<strncasecmp>> is in the Berkeley Software Distribution.
 
 <<strncasecmp>> requires no supporting OS subroutines. It uses
-tolower() from elsewhere in this library.
+toupper() from elsewhere in this library.
 
 QUICKREF
 	strncasecmp
 */
 
-#include <strings.h>
+#include <string.h>
 #include <ctype.h>
 
 int 
-strncasecmp (const char *s1,
-	const char *s2,
+_DEFUN (strncasecmp, (s1, s2, n),
+	_CONST char *s1 _AND
+	_CONST char *s2 _AND
 	size_t n)
 {
-  int d = 0;
-  for ( ; n != 0; n--)
+  if (n == 0)
+    return 0;
+
+  while (n-- != 0 && toupper(*s1) == toupper(*s2))
     {
-      const int c1 = tolower(*s1++);
-      const int c2 = tolower(*s2++);
-      if (((d = c1 - c2) != 0) || (c2 == '\0'))
-        break;
+      if (n == 0 || *s1 == '\0' || *s2 == '\0')
+	break;
+      s1++;
+      s2++;
     }
-  return d;
+
+  return toupper(*(unsigned char *) s1) - toupper(*(unsigned char *) s2);
 }

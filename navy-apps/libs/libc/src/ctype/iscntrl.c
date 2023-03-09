@@ -1,40 +1,34 @@
+
 /*
 FUNCTION
-	<<iscntrl>>, <<iscntrl_l>>---control character predicate
+	<<iscntrl>>---control character predicate
 
 INDEX
 	iscntrl
 
-INDEX
-	iscntrl_l
-
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <ctype.h>
 	int iscntrl(int <[c]>);
 
+TRAD_SYNOPSIS
 	#include <ctype.h>
-	int iscntrl_l(int <[c]>, locale_t <[locale]>);
+	int iscntrl(<[c]>);
 
 DESCRIPTION
-<<iscntrl>> is a macro which classifies singlebyte charset values by table
+<<iscntrl>> is a macro which classifies ASCII integer values by table
 lookup.  It is a predicate returning non-zero for control characters, and 0 
-for other characters.  It is defined only if <[c]> is representable as an
-unsigned char or if <[c]> is EOF.
-
-<<iscntrl_l>> is like <<iscntrl>> but performs the check based on the
-locale specified by the locale object locale.  If <[locale]> is
-LC_GLOBAL_LOCALE or not a valid locale object, the behaviour is undefined.
+for other characters.  It is defined only when <<isascii>>(<[c]>) is
+true or <[c]> is EOF. 
 
 You can use a compiled subroutine instead of the macro definition by
-undefining the macro using `<<#undef iscntrl>>' or `<<#undef iscntrl_l>>'.
+undefining the macro using `<<#undef iscntrl>>'.
 
 RETURNS
-<<iscntrl>>, <<iscntrl_l>> return non-zero if <[c]> is a delete character
-or ordinary control character.
+<<iscntrl>> returns non-zero if <[c]> is a delete character or ordinary
+control character (<<0x7F>> or <<0x00>>--<<0x1F>>).
 
 PORTABILITY
 <<iscntrl>> is ANSI C.
-<<iscntrl_l>> is POSIX-1.2008.
 
 No supporting OS subroutines are required.
 */
@@ -46,7 +40,9 @@ No supporting OS subroutines are required.
 
 #undef iscntrl
 int
-iscntrl (int c)
+_DEFUN(iscntrl,(c),int c)
 {
-	return(__CTYPE_PTR[c+1] & _C);
+	return((_ctype_ + 1)[c] & _C);
 }
+
+

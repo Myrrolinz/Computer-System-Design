@@ -15,21 +15,32 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/*
-FUNCTION
-<<gets>>---get character string (obsolete, use <<fgets>> instead)
 
+/*
+
+FUNCTION
+        <<gets>>---get character string (obsolete, use <<fgets>> instead)
 INDEX
 	gets
 INDEX
 	_gets_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
         #include <stdio.h>
 
 	char *gets(char *<[buf]>);
 
-	char *_gets_r(struct _reent *<[reent]>, char *<[buf]>);
+	char *_gets_r(void *<[reent]>, char *<[buf]>);
+
+TRAD_SYNOPSIS
+	#include <stdio.h>
+
+	char *gets(<[buf]>)
+	char *<[buf]>;
+
+	char *_gets_r(<[reent]>, <[buf]>)
+	char *<[reent]>;
+	char *<[buf]>;
 
 DESCRIPTION
 	Reads characters from standard input until a newline is found.
@@ -57,43 +68,33 @@ Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 <<lseek>>, <<read>>, <<sbrk>>, <<write>>.
 */
 
-#include <_ansi.h>
-#include <reent.h>
 #include <stdio.h>
-#include "local.h"
 
 char *
-_gets_r (struct _reent *ptr,
-       char *buf)
+_gets_r (ptr, buf)
+     struct _reent *ptr;
+     char *buf;
 {
   register int c;
   register char *s = buf;
-  FILE *fp;
 
-  _REENT_SMALL_CHECK_INIT (ptr);
-  fp = _stdin_r (ptr);
-  CHECK_INIT (ptr, fp);
-  _newlib_flockfile_start (fp);
-  while ((c = __sgetc_r (ptr, fp)) != '\n')
+  while ((c = _getchar_r (ptr)) != '\n')
     if (c == EOF)
       if (s == buf)
-	{
-	  _newlib_flockfile_exit (fp);
-	  return NULL;
-	}
+	return NULL;
       else
 	break;
     else
       *s++ = c;
   *s = 0;
-  _newlib_flockfile_end (fp);
   return buf;
 }
 
 #ifndef _REENT_ONLY
 
 char *
-gets (char *buf)
+gets (buf)
+     char *buf;
 {
   return _gets_r (_REENT, buf);
 }

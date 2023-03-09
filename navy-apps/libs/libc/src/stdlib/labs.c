@@ -5,9 +5,14 @@ FUNCTION
 INDEX
 	labs
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdlib.h>
 	long labs(long <[i]>);
+
+TRAD_SYNOPSIS
+	#include <stdlib.h>
+	long labs(<[i]>)
+	long <[i]>;
 
 DESCRIPTION
 <<labs>> returns
@@ -33,7 +38,8 @@ No supporting OS subroutine calls are required.
 #include <stdlib.h>
 
 long
-labs (long x)
+_DEFUN (labs, (x),
+	long x)
 {
   if (x < 0)
     {

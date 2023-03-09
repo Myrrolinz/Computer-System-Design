@@ -17,34 +17,23 @@
 
 /*
 FUNCTION
-<<fwrite>>, <<fwrite_unlocked>>---write array elements
+<<fwrite>>---write array elements
 
 INDEX
 	fwrite
-INDEX
-	fwrite_unlocked
-INDEX
-	_fwrite_r
-INDEX
-	_fwrite_unlocked_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
-	size_t fwrite(const void *restrict <[buf]>, size_t <[size]>,
-		      size_t <[count]>, FILE *restrict <[fp]>);
+	size_t fwrite(const void *<[buf]>, size_t <[size]>,
+		      size_t <[count]>, FILE *<[fp]>);
 
-	#define _BSD_SOURCE
+TRAD_SYNOPSIS
 	#include <stdio.h>
-	size_t fwrite_unlocked(const void *restrict <[buf]>, size_t <[size]>,
-		      size_t <[count]>, FILE *restrict <[fp]>);
-
-	#include <stdio.h>
-	size_t _fwrite_r(struct _reent *<[ptr]>, const void *restrict <[buf]>, size_t <[size]>,
-		      size_t <[count]>, FILE *restrict <[fp]>);
-
-	#include <stdio.h>
-	size_t _fwrite_unlocked_r(struct _reent *<[ptr]>, const void *restrict <[buf]>, size_t <[size]>,
-		      size_t <[count]>, FILE *restrict <[fp]>);
+	size_t fwrite(<[buf]>, <[size]>, <[count]>, <[fp]>)
+	char *<[buf]>;
+	size_t <[size]>;
+	size_t <[count]>;
+	FILE *<[fp]>;
 
 DESCRIPTION
 <<fwrite>> attempts to copy, starting from the memory location
@@ -55,18 +44,6 @@ stream identified by <[fp]>.  <<fwrite>> may copy fewer elements than
 <<fwrite>> also advances the file position indicator (if any) for
 <[fp]> by the number of @emph{characters} actually written.
 
-<<fwrite_unlocked>> is a non-thread-safe version of <<fwrite>>.
-<<fwrite_unlocked>> may only safely be used within a scope
-protected by flockfile() (or ftrylockfile()) and funlockfile().  This
-function may safely be used in a multi-threaded program if and only
-if they are called while the invoking thread owns the (FILE *)
-object, as is the case after a successful call to the flockfile() or
-ftrylockfile() functions.  If threads are disabled, then
-<<fwrite_unlocked>> is equivalent to <<fwrite>>.
-
-<<_fwrite_r>> and <<_fwrite_unlocked_r>> are simply reentrant versions of the
-above that take an additional reentrant structure argument: <[ptr]>.
-
 RETURNS
 If <<fwrite>> succeeds in writing all the elements you specify, the
 result is the same as the argument <[count]>.  In any event, the
@@ -76,8 +53,6 @@ the file.
 PORTABILITY
 ANSI C requires <<fwrite>>.
 
-<<fwrite_unlocked>> is a BSD extension also provided by GNU libc.
-
 Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 <<lseek>>, <<read>>, <<sbrk>>, <<write>>.
 */
@@ -86,7 +61,6 @@ Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 static char sccsid[] = "%W% (Berkeley) %G%";
 #endif /* LIBC_SCCS and not lint */
 
-#include <_ansi.h>
 #include <stdio.h>
 #include <string.h>
 #if 0
@@ -97,25 +71,19 @@ static char sccsid[] = "%W% (Berkeley) %G%";
 #include "fvwrite.h"
 #endif
 
-#ifdef __IMPL_UNLOCKED__
-#define _fwrite_r _fwrite_unlocked_r
-#define fwrite fwrite_unlocked
-#endif
-
 /*
  * Write `count' objects (each size `size') from memory to the given file.
  * Return the number of whole objects written.
  */
 
 size_t
-_fwrite_r (struct _reent * ptr,
-       const void *__restrict buf,
-       size_t size,
-       size_t count,
-       FILE * __restrict fp)
+_DEFUN (fwrite, (buf, size, count, fp),
+	_CONST _PTR buf _AND
+	size_t size _AND
+	size_t count _AND
+	FILE * fp)
 {
   size_t n;
-#ifdef _FVWRITE_IN_STREAMIO
   struct __suio uio;
   struct __siov iov;
 
@@ -125,55 +93,12 @@ _fwrite_r (struct _reent * ptr,
   uio.uio_iovcnt = 1;
 
   /*
-   * The usual case is success (__sfvwrite_r returns 0);
+   * The usual case is success (__sfvwrite returns 0);
    * skip the divide if this happens, since divides are
    * generally slow and since this occurs whenever size==0.
    */
 
-  CHECK_INIT(ptr, fp);
-
-  _newlib_flockfile_start (fp);
-  ORIENT (fp, -1);
-  if (__sfvwrite_r (ptr, fp, &uio) == 0)
-    {
-      _newlib_flockfile_exit (fp);
-      return count;
-    }
-  _newlib_flockfile_end (fp);
+  if (__sfvwrite (fp, &uio) == 0)
+    return count;
   return (n - uio.uio_resid) / size;
-#else
-  size_t i = 0;
-  const char *p = buf;
-  n = count * size;
-  CHECK_INIT (ptr, fp);
-
-  _newlib_flockfile_start (fp);
-  ORIENT (fp, -1);
-  /* Make sure we can write.  */
-  if (cantwrite (ptr, fp))
-    goto ret;
-
-  while (i < n)
-    {
-      if (__sputc_r (ptr, p[i], fp) == EOF)
-	break;
-
-      i++;
-    }
-
-ret:
-  _newlib_flockfile_end (fp);
-  return i / size;
-#endif
 }
-
-#ifndef _REENT_ONLY
-size_t
-fwrite (const void *__restrict buf,
-       size_t size,
-       size_t count,
-       FILE * fp)
-{
-  return _fwrite_r (_REENT, buf, size, count, fp);
-}
-#endif

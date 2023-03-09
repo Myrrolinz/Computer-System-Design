@@ -81,7 +81,6 @@ void SDL_WaitUntil(uint32_t tick) {
 }
 
 uint32_t SDL_GetTicks() {
-  while (PAL_PollEvent(NULL));
   return systime;
 }
 

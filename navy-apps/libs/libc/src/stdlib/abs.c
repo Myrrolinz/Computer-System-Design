@@ -5,9 +5,14 @@ FUNCTION
 INDEX
 	abs
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdlib.h>
 	int abs(int <[i]>);
+
+TRAD_SYNOPSIS
+	#include <stdlib.h>
+	int abs(<[i]>)
+	int <[i]>;
 
 DESCRIPTION
 <<abs>> returns
@@ -32,7 +37,7 @@ No supporting OS subroutines are required.
 #include <stdlib.h>
 
 int
-abs (int i)
+_DEFUN (abs, (i), int i)
 {
   return (i < 0) ? -i : i;
 }

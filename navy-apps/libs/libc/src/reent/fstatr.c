@@ -3,7 +3,6 @@
 
 #include <reent.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <_syslist.h>
 
 /* Some targets provides their own versions of these functions.  Those
@@ -23,7 +22,7 @@ int _dummy_fstat_syscalls = 1;
 
 /* We use the errno variable used by the system dependent layer.  */
 #undef errno
-extern int errno;
+int errno;
 
 /*
 FUNCTION
@@ -32,10 +31,17 @@ FUNCTION
 INDEX
 	_fstat_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <reent.h>
 	int _fstat_r(struct _reent *<[ptr]>,
 		     int <[fd]>, struct stat *<[pstat]>);
+
+TRAD_SYNOPSIS
+	#include <reent.h>
+	int _fstat_r(<[ptr]>, <[fd]>, <[pstat]>)
+	struct _reent *<[ptr]>;
+	int <[fd]>;
+	struct stat *<[pstat]>;
 
 DESCRIPTION
 	This is a reentrant version of <<fstat>>.  It
@@ -52,7 +58,8 @@ _fstat_r (ptr, fd, pstat)
   int ret;
 
   errno = 0;
-  if ((ret = _fstat (fd, pstat)) == -1 && errno != 0)
+  ret = _fstat (fd, pstat);
+  if (errno != 0)
     ptr->_errno = errno;
   return ret;
 }

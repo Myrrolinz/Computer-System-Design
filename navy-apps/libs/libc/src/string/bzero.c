@@ -5,9 +5,15 @@ FUNCTION
 INDEX
 	bzero
 
-SYNOPSIS
-	#include <strings.h>
-	void bzero(void *<[b]>, size_t <[length]>);
+ANSI_SYNOPSIS
+	#include <string.h>
+	void bzero(char *<[b]>, size_t <[length]>);
+
+TRAD_SYNOPSIS
+	#include <string.h>
+	void bzero(<[b]>, <[length]>)
+	char *<[b]>;
+	size_t <[length]>;
 
 DESCRIPTION
 <<bzero>> initializes <[length]> bytes of memory, starting at address
@@ -26,9 +32,11 @@ Neither ANSI C nor the System V Interface Definition (Issue 2) require
 
 #include <string.h>
 
-void
-bzero(void *b, size_t length)
+_VOID
+_DEFUN (bzero, (b, length),
+	char *b _AND
+	size_t length)
 {
-
-	memset(b, 0, length);
+  while (length--)
+    *b++ = 0;
 }

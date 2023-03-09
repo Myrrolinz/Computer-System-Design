@@ -121,7 +121,6 @@ int get_fps(void);
 void set_fps(int fps);
 fly_t characters(void);
 
-void init_screen(void);
 void redraw_screen();
 
 #endif

@@ -14,20 +14,20 @@ FUNCTION
 
 INDEX
 	gmtime
-INDEX
-	gmtime_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <time.h>
-	struct tm *gmtime(const time_t *<[clock]>);
-	struct tm *gmtime_r(const time_t *<[clock]>, struct tm *<[res]>);
+	struct tm *gmtime(const time_t *<[timep]>
+
+TRAD_SYNOPSIS
+	#include <time.h>
 
 DESCRIPTION
-<<gmtime>> takes the time at <[clock]> representing the number
-of elapsed seconds since 00:00:00 on January 1, 1970, Universal
-Coordinated Time (UTC, also known in some countries as GMT,
-Greenwich Mean time) and converts it to a <<struct tm>>
-representation.
+<<gmtime>> assumes the time at <[timep]> represents a local time.
+<<gmtime>> converts it to UTC (Universal Coordinated Time, also known in some
+countries as GMT, Greenwich Mean time), then converts the
+representation from the arithmetic representation to
+the traditional representation defined by <<struct tm>>.
 
 <<gmtime>> constructs the traditional time representation in static
 storage; each call to <<gmtime>> or <<localtime>> will overwrite the
@@ -47,15 +47,11 @@ ANSI C requires <<gmtime>>.
 
 #define _GMT_OFFSET 0
 
-#ifndef _REENT_ONLY
-
 struct tm *
-gmtime (const time_t * tim_p)
+_DEFUN (gmtime, (tim_p),
+	_CONST time_t * tim_p)
 {
-  struct _reent *reent = _REENT;
+  time_t tim = *tim_p + _GMT_OFFSET;
 
-  _REENT_CHECK_TM(reent);
-  return gmtime_r (tim_p, (struct tm *)_REENT_TM(reent));
+  return (localtime (&tim));
 }
-
-#endif

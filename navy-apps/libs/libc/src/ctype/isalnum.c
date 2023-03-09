@@ -1,39 +1,34 @@
 /*
 FUNCTION 
-	<<isalnum>>, <<isalnum_l>>---alphanumeric character predicate
+	<<isalnum>>---alphanumeric character predicate
 
 INDEX
 	isalnum
-INDEX
-	isalnum_l
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <ctype.h>
 	int isalnum(int <[c]>);
 
+TRAD_SYNOPSIS
 	#include <ctype.h>
-	int isalnum_l(int <[c]>, locale_t <[locale]>);
+	int isalnum(<[c]>);
 
 
 DESCRIPTION
-<<isalnum>> is a macro which classifies singlebyte charset values by table
+<<isalnum>> is a macro which classifies ASCII integer values by table
 lookup.  It is a predicate returning non-zero for alphabetic or
 numeric ASCII characters, and <<0>> for other arguments.  It is defined
-only if <[c]> is representable as an unsigned char or if <[c]> is EOF.
-
-<<isalnum_l>> is like <<isalnum>> but performs the check based on the
-locale specified by the locale object locale.  If <[locale]> is
-LC_GLOBAL_LOCALE or not a valid locale object, the behaviour is undefined.
+for all integer values.
 
 You can use a compiled subroutine instead of the macro definition by
-undefining the macro using `<<#undef isalnum>>' or `<<#undef isalnum_l>>'.
+undefining the macro using `<<#undef isalnum>>'.
 
 RETURNS
-<<isalnum>>,<<isalnum_l>> return non-zero if <[c]> is a letter or a digit.
+<<isalnum>> returns non-zero if <[c]> is a letter (<<a>>--<<z>> or
+<<A>>--<<Z>>) or a digit (<<0>>--<<9>>).
 
 PORTABILITY
 <<isalnum>> is ANSI C.
-<<isalnum_l>> is POSIX-1.2008.
 
 No OS subroutines are required.
 */
@@ -44,7 +39,8 @@ No OS subroutines are required.
 #undef isalnum
 
 int
-isalnum (int c)
+_DEFUN(isalnum,(c),int c)
 {
-	return(__CTYPE_PTR[c+1] & (_U|_L|_N));
+	return((_ctype_ + 1)[c] & (_U|_L|_N));
 }
+

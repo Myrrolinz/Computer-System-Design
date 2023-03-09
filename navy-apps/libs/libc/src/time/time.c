@@ -1,3 +1,5 @@
+/* FIXME: doc says "not avail" due to #if 0.
+   	  DELETE that line if inappropriate! */
 /*
 FUNCTION
 <<time>>---get current calendar time (as single number)
@@ -5,9 +7,14 @@ FUNCTION
 INDEX
 	time
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <time.h>
 	time_t time(time_t *<[t]>);
+
+TRAD_SYNOPSIS
+	#include <time.h>
+	time_t time(<[t]>)
+	time_t *<[t]>;
 
 DESCRIPTION
 <<time>> looks up the best available representation of the current
@@ -25,6 +32,8 @@ Supporting OS subroutine required: Some implementations require
 <<gettimeofday>>.
 */
 
+#ifdef HAVE_GETTIMEOFDAY
+
 /* Most times we have a system call in newlib/libc/sys/.. to do this job */
 
 #include <_ansi.h>
@@ -33,14 +42,18 @@ Supporting OS subroutine required: Some implementations require
 #include <sys/time.h>
 
 time_t
-time (time_t * t)
+_DEFUN (time, (t),
+	time_t * t)
 {
   struct timeval now;
 
-  if (_gettimeofday_r (_REENT, &now, NULL) < 0)
-    now.tv_sec = (time_t) -1;
-
-  if (t)
-    *t = now.tv_sec;
-  return now.tv_sec;
+  if (_gettimeofday_r (_REENT, &now, (struct timezone *) 0) >= 0)
+    {
+      if (t)
+	*t = now.tv_sec;
+      return now.tv_sec;
+    }
+  return -1;
 }
+
+#endif

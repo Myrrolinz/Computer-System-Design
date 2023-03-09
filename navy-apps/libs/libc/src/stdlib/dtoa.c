@@ -33,15 +33,17 @@
 #include "mprec.h"
 
 static int
-quorem (_Bigint * b, _Bigint * S)
+_DEFUN (quorem,
+	(b, S),
+	_Bigint * b _AND _Bigint * S)
 {
   int n;
-  __Long borrow, y;
-  __ULong carry, q, ys;
-  __ULong *bx, *bxe, *sx, *sxe;
+  long borrow, y;
+  unsigned long carry, q, ys;
+  unsigned long *bx, *bxe, *sx, *sxe;
 #ifdef Pack_32
-  __Long z;
-  __ULong si, zs;
+  long z;
+  unsigned long si, zs;
 #endif
 
   n = S->_wds;
@@ -175,12 +177,14 @@ quorem (_Bigint * b, _Bigint * S)
 
 
 char *
-_dtoa_r (struct _reent *ptr,
-	double _d,
-	int mode,
-	int ndigits,
-	int *decpt,
-	int *sign,
+_DEFUN (_dtoa_r,
+	(ptr, d, mode, ndigits, decpt, sign, rve),
+	struct _reent *ptr _AND
+	double d _AND
+	int mode _AND
+	int ndigits _AND
+	int *decpt _AND
+	int *sign _AND
 	char **rve)
 {
   /*	Arguments ndigits, decpt, sign are similar to those
@@ -219,25 +223,21 @@ _dtoa_r (struct _reent *ptr,
 
   int bbits, b2, b5, be, dig, i, ieps, ilim, ilim0, ilim1, j, j1, k, k0,
     k_check, leftright, m2, m5, s2, s5, spec_case, try_quick;
-  union double_union d, d2, eps;
-  __Long L;
+  long L;
 #ifndef Sudden_Underflow
   int denorm;
-  __ULong x;
+  unsigned long x;
 #endif
-  _Bigint *b, *b1, *delta, *mlo = NULL, *mhi, *S;
-  double ds;
+  _Bigint *b, *b1, *delta, *mlo, *mhi, *S;
+  double d2, ds, eps;
   char *s, *s0;
 
-  d.d = _d;
-
-  _REENT_CHECK_MP(ptr);
-  if (_REENT_MP_RESULT(ptr))
+  if (ptr->_result)
     {
-      _REENT_MP_RESULT(ptr)->_k = _REENT_MP_RESULT_K(ptr);
-      _REENT_MP_RESULT(ptr)->_maxwds = 1 << _REENT_MP_RESULT_K(ptr);
-      Bfree (ptr, _REENT_MP_RESULT(ptr));
-      _REENT_MP_RESULT(ptr) = 0;
+      ptr->_result->_k = ptr->_result_k;
+      ptr->_result->_maxwds = 1 << ptr->_result_k;
+      Bfree (ptr, ptr->_result);
+      ptr->_result = 0;
     }
 
   if (word0 (d) & Sign_bit)
@@ -273,9 +273,9 @@ _dtoa_r (struct _reent *ptr,
     }
 #endif
 #ifdef IBM
-  d.d += 0;			/* normalize */
+  d += 0;			/* normalize */
 #endif
-  if (!d.d)
+  if (!d)
     {
       *decpt = 1;
       s = "0";
@@ -284,19 +284,19 @@ _dtoa_r (struct _reent *ptr,
       return s;
     }
 
-  b = d2b (ptr, d.d, &be, &bbits);
+  b = d2b (ptr, d, &be, &bbits);
 #ifdef Sudden_Underflow
   i = (int) (word0 (d) >> Exp_shift1 & (Exp_mask >> Exp_shift1));
 #else
-  if ((i = (int) (word0 (d) >> Exp_shift1 & (Exp_mask >> Exp_shift1))) != 0)
+  if (i = (int) (word0 (d) >> Exp_shift1 & (Exp_mask >> Exp_shift1)))
     {
 #endif
-      d2.d = d.d;
+      d2 = d;
       word0 (d2) &= Frac_mask1;
       word0 (d2) |= Exp_11;
 #ifdef IBM
       if (j = 11 - hi0bits (word0 (d2) & Frac_mask))
-	d2.d /= 1 << j;
+	d2 /= 1 << j;
 #endif
 
       /* log(x)	~=~ log(1.5) + (x-1.5)/1.5
@@ -334,30 +334,22 @@ _dtoa_r (struct _reent *ptr,
       /* d is denormalized */
 
       i = bbits + be + (Bias + (P - 1) - 1);
-#if defined (_DOUBLE_IS_32BITS)
-      x = word0 (d) << (32 - i);
-#else
-      x = (i > 32) ? (word0 (d) << (64 - i)) | (word1 (d) >> (i - 32))
-       : (word1 (d) << (32 - i));
-#endif
-      d2.d = x;
+      x = i > 32 ? word0 (d) << 64 - i | word1 (d) >> i - 32
+	: word1 (d) << 32 - i;
+      d2 = x;
       word0 (d2) -= 31 * Exp_msk1;	/* adjust exponent */
       i -= (Bias + (P - 1) - 1) + 1;
       denorm = 1;
     }
 #endif
-#if defined (_DOUBLE_IS_32BITS)
-  ds = (d2.d - 1.5) * 0.289529651 + 0.176091269 + i * 0.30103001;
-#else
-  ds = (d2.d - 1.5) * 0.289529654602168 + 0.1760912590558 + i * 0.301029995663981;
-#endif
+  ds = (d2 - 1.5) * 0.289529654602168 + 0.1760912590558 + i * 0.301029995663981;
   k = (int) ds;
   if (ds < 0. && ds != k)
     k--;			/* want k = floor(ds) */
   k_check = 1;
   if (k >= 0 && k <= Ten_pmax)
     {
-      if (d.d < tens[k])
+      if (d < tens[k])
 	k--;
       k_check = 0;
     }
@@ -393,11 +385,11 @@ _dtoa_r (struct _reent *ptr,
       try_quick = 0;
     }
   leftright = 1;
-  ilim = ilim1 = -1;
   switch (mode)
     {
     case 0:
     case 1:
+      ilim = ilim1 = -1;
       i = 18;
       ndigits = 0;
       break;
@@ -419,19 +411,19 @@ _dtoa_r (struct _reent *ptr,
       if (i <= 0)
 	i = 1;
     }
-  j = sizeof (__ULong);
-  for (_REENT_MP_RESULT_K(ptr) = 0; sizeof (_Bigint) - sizeof (__ULong) + j <= i;
+  j = sizeof (unsigned long);
+  for (ptr->_result_k = 0; sizeof (_Bigint) - sizeof (unsigned long) + j < i;
        j <<= 1)
-    _REENT_MP_RESULT_K(ptr)++;
-  _REENT_MP_RESULT(ptr) = Balloc (ptr, _REENT_MP_RESULT_K(ptr));
-  s = s0 = (char *) _REENT_MP_RESULT(ptr);
+    ptr->_result_k++;
+  ptr->_result = Balloc (ptr, ptr->_result_k);
+  s = s0 = (char *) ptr->_result->_x;
 
   if (ilim >= 0 && ilim <= Quick_max && try_quick)
     {
       /* Try to get by with floating-point arithmetic. */
 
       i = 0;
-      d2.d = d.d;
+      d2 = d;
       k0 = k;
       ilim0 = ilim;
       ieps = 2;			/* conservative */
@@ -443,7 +435,7 @@ _dtoa_r (struct _reent *ptr,
 	    {
 	      /* prevent overflows */
 	      j &= Bletch - 1;
-	      d.d /= bigtens[n_bigtens - 1];
+	      d /= bigtens[n_bigtens - 1];
 	      ieps++;
 	    }
 	  for (; j; j >>= 1, i++)
@@ -452,36 +444,36 @@ _dtoa_r (struct _reent *ptr,
 		ieps++;
 		ds *= bigtens[i];
 	      }
-	  d.d /= ds;
+	  d /= ds;
 	}
-      else if ((j1 = -k) != 0)
+      else if (j1 = -k)
 	{
-	  d.d *= tens[j1 & 0xf];
+	  d *= tens[j1 & 0xf];
 	  for (j = j1 >> 4; j; j >>= 1, i++)
 	    if (j & 1)
 	      {
 		ieps++;
-		d.d *= bigtens[i];
+		d *= bigtens[i];
 	      }
 	}
-      if (k_check && d.d < 1. && ilim > 0)
+      if (k_check && d < 1. && ilim > 0)
 	{
 	  if (ilim1 <= 0)
 	    goto fast_failed;
 	  ilim = ilim1;
 	  k--;
-	  d.d *= 10.;
+	  d *= 10.;
 	  ieps++;
 	}
-      eps.d = ieps * d.d + 7.;
+      eps = ieps * d + 7.;
       word0 (eps) -= (P - 1) * Exp_msk1;
       if (ilim == 0)
 	{
 	  S = mhi = 0;
-	  d.d -= 5.;
-	  if (d.d > eps.d)
+	  d -= 5.;
+	  if (d > eps)
 	    goto one_digit;
-	  if (d.d < -eps.d)
+	  if (d < -eps)
 	    goto no_digits;
 	  goto fast_failed;
 	}
@@ -491,37 +483,37 @@ _dtoa_r (struct _reent *ptr,
 	  /* Use Steele & White method of only
 	   * generating digits needed.
 	   */
-	  eps.d = 0.5 / tens[ilim - 1] - eps.d;
+	  eps = 0.5 / tens[ilim - 1] - eps;
 	  for (i = 0;;)
 	    {
-	      L = d.d;
-	      d.d -= L;
+	      L = d;
+	      d -= L;
 	      *s++ = '0' + (int) L;
-	      if (d.d < eps.d)
+	      if (d < eps)
 		goto ret1;
-	      if (1. - d.d < eps.d)
+	      if (1. - d < eps)
 		goto bump_up;
 	      if (++i >= ilim)
 		break;
-	      eps.d *= 10.;
-	      d.d *= 10.;
+	      eps *= 10.;
+	      d *= 10.;
 	    }
 	}
       else
 	{
 #endif
 	  /* Generate ilim digits, then fix them up. */
-	  eps.d *= tens[ilim - 1];
-	  for (i = 1;; i++, d.d *= 10.)
+	  eps *= tens[ilim - 1];
+	  for (i = 1;; i++, d *= 10.)
 	    {
-	      L = d.d;
-	      d.d -= L;
+	      L = d;
+	      d -= L;
 	      *s++ = '0' + (int) L;
 	      if (i == ilim)
 		{
-		  if (d.d > 0.5 + eps.d)
+		  if (d > 0.5 + eps)
 		    goto bump_up;
-		  else if (d.d < 0.5 - eps.d)
+		  else if (d < 0.5 - eps)
 		    {
 		      while (*--s == '0');
 		      s++;
@@ -535,7 +527,7 @@ _dtoa_r (struct _reent *ptr,
 #endif
     fast_failed:
       s = s0;
-      d.d = d2.d;
+      d = d2;
       k = k0;
       ilim = ilim0;
     }
@@ -549,27 +541,27 @@ _dtoa_r (struct _reent *ptr,
       if (ndigits < 0 && ilim <= 0)
 	{
 	  S = mhi = 0;
-	  if (ilim < 0 || d.d <= 5 * ds)
+	  if (ilim < 0 || d <= 5 * ds)
 	    goto no_digits;
 	  goto one_digit;
 	}
       for (i = 1;; i++)
 	{
-	  L = d.d / ds;
-	  d.d -= L * ds;
+	  L = d / ds;
+	  d -= L * ds;
 #ifdef Check_FLT_ROUNDS
 	  /* If FLT_ROUNDS == 2, L will usually be high by 1 */
-	  if (d.d < 0)
+	  if (d < 0)
 	    {
 	      L--;
-	      d.d += ds;
+	      d += ds;
 	    }
 #endif
 	  *s++ = '0' + (int) L;
 	  if (i == ilim)
 	    {
-	      d.d += d.d;
-             if ((d.d > ds) || ((d.d == ds) && (L & 1)))
+	      d += d;
+	      if (d > ds || d == ds && L & 1)
 		{
 		bump_up:
 		  while (*--s == '9')
@@ -583,7 +575,7 @@ _dtoa_r (struct _reent *ptr,
 		}
 	      break;
 	    }
-	  if (!(d.d *= 10.))
+	  if (!(d *= 10.))
 	    break;
 	}
       goto ret1;
@@ -645,7 +637,7 @@ _dtoa_r (struct _reent *ptr,
 	      Bfree (ptr, b);
 	      b = b1;
 	    }
-         if ((j = b5 - m5) != 0)
+	  if (j = b5 - m5)
 	    b = pow5mult (ptr, b, j);
 	}
       else
@@ -657,7 +649,6 @@ _dtoa_r (struct _reent *ptr,
 
   /* Check for special case that d is a normalized power of 2. */
 
-  spec_case = 0;
   if (mode < 2)
     {
       if (!word1 (d) && !(word0 (d) & Bndry_mask)
@@ -671,6 +662,8 @@ _dtoa_r (struct _reent *ptr,
 	  s2 += Log2P;
 	  spec_case = 1;
 	}
+      else
+	spec_case = 0;
     }
 
   /* Arrange for convenient computation of quotients:
@@ -682,10 +675,10 @@ _dtoa_r (struct _reent *ptr,
    */
 
 #ifdef Pack_32
-  if ((i = ((s5 ? 32 - hi0bits (S->_x[S->_wds - 1]) : 1) + s2) & 0x1f) != 0)
+  if (i = ((s5 ? 32 - hi0bits (S->_x[S->_wds - 1]) : 1) + s2) & 0x1f)
     i = 32 - i;
 #else
-  if ((i = ((s5 ? 32 - hi0bits (S->_x[S->_wds - 1]) : 1) + s2) & 0xf) != 0)
+  if (i = ((s5 ? 32 - hi0bits (S->_x[S->_wds - 1]) : 1) + s2) & 0xf)
     i = 16 - i;
 #endif
   if (i > 4)
@@ -769,17 +762,17 @@ _dtoa_r (struct _reent *ptr,
 	      goto ret;
 	    }
 #endif
-         if ((j < 0) || ((j == 0) && !mode
+	  if (j < 0 || j == 0 && !mode
 #ifndef ROUND_BIASED
 	      && !(word1 (d) & 1)
 #endif
-           ))
+	    )
 	    {
 	      if (j1 > 0)
 		{
 		  b = lshift (ptr, b, 1);
 		  j1 = cmp (b, S);
-                 if (((j1 > 0) || ((j1 == 0) && (dig & 1)))
+		  if ((j1 > 0 || j1 == 0 && dig & 1)
 		      && dig++ == '9')
 		    goto round_9_up;
 		}
@@ -823,7 +816,7 @@ _dtoa_r (struct _reent *ptr,
 
   b = lshift (ptr, b, 1);
   j = cmp (b, S);
-  if ((j > 0) || ((j == 0) && (dig & 1)))
+  if (j > 0 || j == 0 && dig & 1)
     {
     roundoff:
       while (*--s == '9')

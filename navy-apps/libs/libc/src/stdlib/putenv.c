@@ -1,3 +1,8 @@
+/* This file may have been modified by DJ Delorie (Jan 1991).  If so,
+** these modifications are Coyright (C) 1991 DJ Delorie, 24 Kirsten Ave,
+** Rochester NH, 03867-2954, USA.
+*/
+
 /*-
  * Copyright (c) 1988 The Regents of the University of California.
  * All rights reserved.
@@ -17,15 +22,25 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef _REENT_ONLY
-
 #include <stdlib.h>
 #include <string.h>
 
 int
-putenv (char *str)
+_DEFUN (putenv, (str),
+	_CONST char *str)
 {
-  return _putenv_r (_REENT, str);
-}
+  register char *p, *equal;
+  int rval;
 
-#endif /* !_REENT_ONLY */
+  if (!(p = strdup (str)))
+    return 1;
+  if (!(equal = index (p, '=')))
+    {
+      (void) free (p);
+      return 1;
+    }
+  *equal = '\0';
+  rval = setenv (p, equal + 1, 1);
+  (void) free (p);
+  return rval;
+}

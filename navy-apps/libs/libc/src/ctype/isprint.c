@@ -1,50 +1,38 @@
+
 /*
 FUNCTION
-	<<isprint>>, <<isgraph>>, <<isprint_l>>, <<isgraph_l>>---printable character predicates
+	<<isprint>>, <<isgraph>>---printable character predicates
 
 INDEX
 	isprint
-
 INDEX
 	isgraph
 
-INDEX
-	isprint_l
-
-INDEX
-	isgraph_l
-
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <ctype.h>
 	int isprint(int <[c]>);
 	int isgraph(int <[c]>);
 
+TRAD_SYNOPSIS
 	#include <ctype.h>
-	int isprint_l(int <[c]>, locale_t <[locale]>);
-	int isgraph_l(int <[c]>, locale_t <[locale]>);
+	int isprint(<[c]>);
+	int isgraph(<[c]>);
+
 
 DESCRIPTION
-<<isprint>> is a macro which classifies singlebyte charset values by table
-lookup.  It is a predicate returning non-zero for printable characters,
-and 0 for other character arguments.  It is defined only if <[c]> is
-representable as an unsigned char or if <[c]> is EOF.
-
-<<isgraph>> behaves identically to <<isprint>>, except that space characters
-are excluded.
-
-<<isprint_l>>, <<isgraph_l>> are like <<isprint>>, <<isgraph>> but perform
-the check based on the locale specified by the locale object locale.  If
-<[locale]> is LC_GLOBAL_LOCALE or not a valid locale object, the behaviour
-is undefined.
+<<isprint>> is a macro which classifies ASCII integer values by table
+lookup.  It is a predicate returning non-zero for printable
+characters, and 0 for other character arguments. 
+It is defined only when <<isascii>>(<[c]>) is true or <[c]> is EOF.
 
 You can use a compiled subroutine instead of the macro definition by
-undefining either macro using `<<#undef isprint>>' or `<<#undef isgraph>>',
-or `<<#undef isprint_l>>' or `<<#undef isgraph_l>>'.
+undefining either macro using `<<#undef isprint>>' or `<<#undef isgraph>>'.
 
 RETURNS
-<<isprint>>, <<isprint_l>> return non-zero if <[c]> is a printing character.
-<<isgraph>>, <<isgraph_l>> return non-zero if <[c]> is a printing character
-except spaces.
+<<isprint>> returns non-zero if <[c]> is a printing character,
+(<<0x20>>--<<0x7E>>).
+<<isgraph>> behaves identically to <<isprint>>, except that the space
+character (<<0x20>>) is excluded.
 
 PORTABILITY
 <<isprint>> and <<isgraph>> are ANSI C.
@@ -57,15 +45,16 @@ No supporting OS subroutines are required.
 
 #undef isgraph
 int
-isgraph (int c)
+_DEFUN(isgraph,(c),int c)
 {
-	return(__CTYPE_PTR[c+1] & (_P|_U|_L|_N));
+	return((_ctype_ + 1)[c] & (_P|_U|_L|_N));
 }
 
 
 #undef isprint
 int
-isprint (int c)
+_DEFUN(isprint,(c),int c)
 {
-	return(__CTYPE_PTR[c+1] & (_P|_U|_L|_N|_B));
+	return((_ctype_ + 1)[c] & (_P|_U|_L|_N|_B));
 }
+

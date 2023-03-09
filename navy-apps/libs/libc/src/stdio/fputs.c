@@ -17,46 +17,24 @@
 
 /*
 FUNCTION
-<<fputs>>, <<fputs_unlocked>>---write a character string in a file or stream
+<<fputs>>---write a character string in a file or stream
 
 INDEX
 	fputs
-INDEX
-	fputs_unlocked
-INDEX
-	_fputs_r
-INDEX
-	_fputs_unlocked_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
-	int fputs(const char *restrict <[s]>, FILE *restrict <[fp]>);
+	int fputs(const char *<[s]>, FILE *<[fp]>);
 
-	#define _GNU_SOURCE
+TRAD_SYNOPSIS
 	#include <stdio.h>
-	int fputs_unlocked(const char *restrict <[s]>, FILE *restrict <[fp]>);
-
-	#include <stdio.h>
-	int _fputs_r(struct _reent *<[ptr]>, const char *restrict <[s]>, FILE *restrict <[fp]>);
-
-	#include <stdio.h>
-	int _fputs_unlocked_r(struct _reent *<[ptr]>, const char *restrict <[s]>, FILE *restrict <[fp]>);
+	int fputs(<[s]>, <[fp]>)
+	char *<[s]>;
+	FILE *<[fp]>;
 
 DESCRIPTION
 <<fputs>> writes the string at <[s]> (but without the trailing null)
 to the file or stream identified by <[fp]>.
-
-<<fputs_unlocked>> is a non-thread-safe version of <<fputs>>.
-<<fputs_unlocked>> may only safely be used within a scope
-protected by flockfile() (or ftrylockfile()) and funlockfile().  This
-function may safely be used in a multi-threaded program if and only
-if they are called while the invoking thread owns the (FILE *)
-object, as is the case after a successful call to the flockfile() or
-ftrylockfile() functions.  If threads are disabled, then
-<<fputs_unlocked>> is equivalent to <<fputs>>.
-
-<<_fputs_r>> and <<_fputs_unlocked_r>> are simply reentrant versions of the
-above that take an additional reentrant struct pointer argument: <[ptr]>.
 
 RETURNS
 If successful, the result is <<0>>; otherwise, the result is <<EOF>>.
@@ -65,33 +43,23 @@ PORTABILITY
 ANSI C requires <<fputs>>, but does not specify that the result on
 success must be <<0>>; any non-negative value is permitted.
 
-<<fputs_unlocked>> is a GNU extension.
-
 Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 <<lseek>>, <<read>>, <<sbrk>>, <<write>>.
 */
 
-#include <_ansi.h>
 #include <stdio.h>
 #include <string.h>
 #include "fvwrite.h"
-#include "local.h"
-
-#ifdef __IMPL_UNLOCKED__
-#define _fputs_r _fputs_unlocked_r
-#define fputs fputs_unlocked
-#endif
 
 /*
  * Write the given string to the given file.
  */
+
 int
-_fputs_r (struct _reent * ptr,
-       char const *__restrict s,
-       FILE *__restrict fp)
+_DEFUN (fputs, (s, fp),
+	char _CONST * s _AND
+	FILE * fp)
 {
-#ifdef _FVWRITE_IN_STREAMIO
-  int result;
   struct __suio uio;
   struct __siov iov;
 
@@ -99,44 +67,5 @@ _fputs_r (struct _reent * ptr,
   iov.iov_len = uio.uio_resid = strlen (s);
   uio.uio_iov = &iov;
   uio.uio_iovcnt = 1;
-
-  CHECK_INIT(ptr, fp);
-
-  _newlib_flockfile_start (fp);
-  ORIENT (fp, -1);
-  result = __sfvwrite_r (ptr, fp, &uio);
-  _newlib_flockfile_end (fp);
-  return result;
-#else
-  const char *p = s;
-
-  CHECK_INIT(ptr, fp);
-
-  _newlib_flockfile_start (fp);
-  ORIENT (fp, -1);
-  /* Make sure we can write.  */
-  if (cantwrite (ptr, fp))
-    goto error;
-
-  while (*p)
-    {
-      if (__sputc_r (ptr, *p++, fp) == EOF)
-	goto error;
-    }
-  _newlib_flockfile_exit (fp);
-  return 0;
-
-error:
-  _newlib_flockfile_end (fp);
-  return EOF;
-#endif
+  return __sfvwrite (fp, &uio);
 }
-
-#ifndef _REENT_ONLY
-int
-fputs (char const *__restrict s,
-       FILE *__restrict fp)
-{
-  return _fputs_r (_REENT, s, fp);
-}
-#endif /* !_REENT_ONLY */

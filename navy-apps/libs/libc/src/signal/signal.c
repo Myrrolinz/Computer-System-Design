@@ -6,15 +6,42 @@ INDEX
 	signal
 INDEX
 	_signal_r
+INDEX
+	raise
+INDEX
+	_raise_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <signal.h>
-	void (*signal(int <[sig]>, void(*<[func]>)(int))) (int);
+	void ( * signal(int <[sig]>, void(*<[func]>)(int)) )(int);
 
-	void (*_signal_r(void *<[reent]>, int <[sig]>, void(*<[func]>)(int))) (int);
+	void ( * _signal_r(void *<[reent]>, 
+                           int <[sig]>, void(*<[func]>)(int)) )(int);
+
+	int raise (int <[sig]>);
+
+	int _raise_r (void *<[reent]>, int <[sig]>);
+
+TRAD_SYNOPSIS
+	#include <signal.h>
+	char ( * signal(<[sig]>, <[func]>) )()
+	int <[sig]>;
+	char ( * <[func]> )();
+
+	char ( * _signal_r(<[reent]>, <[sig]>, <[func]>) )()
+	char *<[reent]>;
+	int <[sig]>;
+	char ( * <[func]> )();
+
+	int raise (<[sig]>)()
+	int <[sig]>;
+
+	int _raise_r (<[reent]>, <[sig]>)()
+	char *<[reent]>;
+	int <[sig]>;
 
 DESCRIPTION
-<<signal>> provides a simple signal-handling implementation for embedded
+<<signal, raise>> provide a simple signal/raise implementation for embedded
 targets.
 
 <<signal>> allows you to request changed treatment for a particular
@@ -25,7 +52,7 @@ that identifies a subroutine in your program as the handler for this signal.
 
 Some of the execution environment for signal handlers is
 unpredictable; notably, the only library function required to work
-correctly from within a signal handler is <<signal>> itself, and
+correctly from within a signal handler is @code{signal} itself, and
 only when used to redefine the handler for the current signal value.
 
 Static storage is likewise unreliable for signal handlers, with one
@@ -39,8 +66,12 @@ where it was when the signal was raised (whether by your program
 itself, or by an external event).  Signal handlers can also
 use functions such as <<exit>> and <<abort>> to avoid returning.
 
-The alternate function <<_signal_r>> is the reentrant version.
+<<raise>> sends the signal sig to the executing program.  It returns zero if
+successful, non-zero if unsuccessful.
+
+The alternate functions <<_signal_r, _raise_r>> are the reentrant versions.
 The extra argument <[reent]> is a pointer to a reentrancy structure.
+
 
 @c FIXME: do we have setjmp.h and assoc fns?
 
@@ -52,7 +83,7 @@ Otherwise, the result is the previous handler (a function pointer or
 one of the predefined macros).
 
 PORTABILITY
-ANSI C requires <<signal>>.
+ANSI C requires <<raise>>, <<signal>>.
 
 No supporting OS subroutines are required to link with <<signal>>, but
 it will not have any useful effects, except for software generated signals,
@@ -75,7 +106,7 @@ without an operating system that can actually raise exceptions.
 /* _init_signal initialises the signal handlers for each signal. This function
    is called by crt0 at program startup.  */
 
-#ifdef SIGNAL_PROVIDED
+#ifndef SIMULATED_SIGNALS
 
 int _dummy_simulated_signal;
 
@@ -88,136 +119,114 @@ int _dummy_simulated_signal;
 #include <reent.h>
 #include <_syslist.h>
 
-int
-_init_signal_r (struct _reent *ptr)
-{
-  int i;
-
-  if (ptr->_sig_func == NULL)
-    {
-      ptr->_sig_func = (_sig_func_ptr *)_malloc_r (ptr, sizeof (_sig_func_ptr) * NSIG);
-      if (ptr->_sig_func == NULL)
-	return -1;
-
-      for (i = 0; i < NSIG; i++)
-	ptr->_sig_func[i] = SIG_DFL;
-    }
-
-  return 0;
-}
-
 _sig_func_ptr
-_signal_r (struct _reent *ptr,
-	int sig,
+_DEFUN (_signal_r, (ptr, sig, func),
+	struct _reent *ptr _AND
+	int sig _AND
 	_sig_func_ptr func)
 {
-  _sig_func_ptr old_func;
+  _sig_func_ptr old_func, *temp;
 
-  if (sig < 0 || sig >= NSIG)
+  switch (sig)
     {
-      ptr->_errno = EINVAL;
-      return SIG_ERR;
-    }
+    case SIGABRT:
+    case SIGFPE:
+    case SIGILL:
+    case SIGINT:
+    case SIGSEGV:
+    case SIGTERM:
 
-  if (ptr->_sig_func == NULL && _init_signal_r (ptr) != 0)
-    return SIG_ERR;
-  
-  old_func = ptr->_sig_func[sig];
-  ptr->_sig_func[sig] = func;
+      if (ptr->sig_func == NULL)
+	{
+	   ptr->sig_func = _malloc_r (ptr, sizeof (void (*(_sig_func[_MAX_SIGNALS]))()));
+	   if (ptr->sig_func == NULL)
+	     {
+	       return SIG_ERR;
+	     }
+	}
+
+      old_func = ptr->sig_func[sig];
+      ptr->sig_func[sig] = func;
+      break;
+    default:
+      old_func = SIG_ERR;
+      ptr->_errno = EINVAL;
+      break;
+    }
 
   return old_func;
 }
 
 int 
-_raise_r (struct _reent *ptr,
-     int sig)
+_raise_r (ptr, sig)
+     struct _reent *ptr;
+     int sig;
 {
   _sig_func_ptr func;
+  int result = 0;
 
-  if (sig < 0 || sig >= NSIG)
+  /* No signals to raise! */
+  if (ptr->sig_func == NULL) return 1;
+  
+  switch (sig)
     {
-      ptr->_errno = EINVAL;
-      return -1;
+    case SIGABRT:
+    case SIGFPE:
+    case SIGILL:
+    case SIGINT:
+    case SIGSEGV:
+    case SIGTERM:
+      switch ((int) ptr->sig_func[sig])
+	{
+	case SIG_DFL:
+	case SIG_IGN:
+	  break;
+	case SIG_ERR:
+	  result = 1;
+	  break;
+	default:
+	  func = ptr->sig_func[sig];
+	  ptr->sig_func[sig] = SIG_DFL;
+	  func (sig);
+	  break;
+	}
+      break;
+    default:
+      result = 1;
+      break;
     }
 
-  if (ptr->_sig_func == NULL)
-    func = SIG_DFL;
-  else
-    func = ptr->_sig_func[sig];
-
-  if (func == SIG_DFL)
-    return _kill_r (ptr, _getpid_r (ptr), sig);
-  else if (func == SIG_IGN)
-    return 0;
-  else if (func == SIG_ERR)
-    {
-      ptr->_errno = EINVAL;
-      return 1;
-    }
-  else
-    {
-      ptr->_sig_func[sig] = SIG_DFL;
-      func (sig);
-      return 0;
-    }
-}
-
-int
-__sigtramp_r (struct _reent *ptr,
-     int sig)
-{
-  _sig_func_ptr func;
-
-  if (sig < 0 || sig >= NSIG)
-    {
-      return -1;
-    }
-
-  if (ptr->_sig_func == NULL && _init_signal_r (ptr) != 0)
-    return -1;
-
-  func = ptr->_sig_func[sig];
-  if (func == SIG_DFL)
-    return 1;
-  else if (func == SIG_ERR)
-    return 2;
-  else if (func == SIG_IGN)
-    return 3;
-  else
-    {
-      ptr->_sig_func[sig] = SIG_DFL;
-      func (sig);
-      return 0;
-    }
+  return result;
 }
 
 #ifndef _REENT_ONLY
 
 int 
-raise (int sig)
+raise (sig)
+     int sig;
 {
   return _raise_r (_REENT, sig);
 }
 
 _sig_func_ptr
-signal (int sig,
+_DEFUN (signal, (sig, func),
+	int sig _AND
 	_sig_func_ptr func)
 {
   return _signal_r (_REENT, sig, func);
 }
 
-int 
-_init_signal (void)
+void 
+_init_signal ()
 {
-  return _init_signal_r (_REENT);
-}
-
-int
-__sigtramp (int sig)
-{
-  return __sigtramp_r (_REENT, sig);
+  _signal_r (_REENT, SIGABRT, SIG_DFL);
+  _signal_r (_REENT, SIGFPE, SIG_DFL);
+  _signal_r (_REENT, SIGILL, SIG_DFL);
+  _signal_r (_REENT, SIGINT, SIG_DFL);
+  _signal_r (_REENT, SIGSEGV, SIG_DFL);
+  _signal_r (_REENT, SIGTERM, SIG_DFL);
 }
 
 #endif
 
-#endif /* !SIGNAL_PROVIDED */
+#endif /* SIMULATED_SIGNALS */

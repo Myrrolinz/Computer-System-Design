@@ -6,10 +6,10 @@
  */
 
 #include <_ansi.h>
-#include "std.h"
 
 int
-__ten_mul (double *acc,
+_DEFUN (__ten_mul, (acc, digit),
+	double *acc _AND
 	int digit)
 {
   /*

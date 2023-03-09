@@ -1,12 +1,17 @@
 /*
 FUNCTION
-	<<strcspn>>---count characters not in string
+	<<strcspn>>---count chars not in string
 
 INDEX
 	strcspn
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	size_t strcspn(const char *<[s1]>, const char *<[s2]>);
+
+TRAD_SYNOPSIS
+	size_t strcspn(<[s1]>, <[s2]>)
+	char *<[s1]>;
+	char *<[s2]>;
 
 DESCRIPTION
 	This function computes the length of the initial part of
@@ -26,11 +31,12 @@ PORTABILITY
 #include <string.h>
 
 size_t
-strcspn (const char *s1,
-	const char *s2)
+_DEFUN (strcspn, (s1, s2),
+	_CONST char *s1 _AND
+	_CONST char *s2)
 {
-  const char *s = s1;
-  const char *c;
+  _CONST char *s = s1;
+  _CONST char *c;
 
   while (*s1)
     {

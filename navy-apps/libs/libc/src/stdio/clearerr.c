@@ -17,20 +17,19 @@
 
 /*
 FUNCTION
-<<clearerr>>, <<clearerr_unlocked>>---clear file or stream error indicator
+<<clearerr>>---clear file or stream error indicator
 
 INDEX
 	clearerr
-INDEX
-	clearerr_unlocked
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 	void clearerr(FILE *<[fp]>);
 
-	#define _BSD_SOURCE
+TRAD_SYNOPSIS
 	#include <stdio.h>
-	void clearerr_unlocked(FILE *<[fp]>);
+	void clearerr(<[fp]>)
+	FILE *<[fp]>;
 
 DESCRIPTION
 The <<stdio>> functions maintain an error indicator with each file
@@ -43,14 +42,6 @@ Use <<clearerr>> to reset both of these indicators.
 
 See <<ferror>> and <<feof>> to query the two indicators.
 
-<<clearerr_unlocked>> is a non-thread-safe version of <<clearerr>>.
-<<clearerr_unlocked>> may only safely be used within a scope
-protected by flockfile() (or ftrylockfile()) and funlockfile().  This
-function may safely be used in a multi-threaded program if and only
-if they are called while the invoking thread owns the (FILE *)
-object, as is the case after a successful call to the flockfile() or
-ftrylockfile() functions.  If threads are disabled, then
-<<clearerr_unlocked>> is equivalent to <<clearerr>>.
 
 RETURNS
 <<clearerr>> does not return a result.
@@ -58,24 +49,15 @@ RETURNS
 PORTABILITY
 ANSI C requires <<clearerr>>.
 
-<<clearerr_unlocked>> is a BSD extension also provided by GNU libc.
-
 No supporting OS subroutines are required.
 */
 
-#include <_ansi.h>
 #include <stdio.h>
-#include "local.h"
-
-/* A subroutine version of the macro clearerr.  */
-
 #undef	clearerr
 
-void
-clearerr (FILE * fp)
+_VOID
+_DEFUN (clearerr, (fp),
+	FILE * fp)
 {
-  CHECK_INIT(_REENT, fp);
-  _newlib_flockfile_start (fp);
   __sclearerr (fp);
-  _newlib_flockfile_end (fp);
 }

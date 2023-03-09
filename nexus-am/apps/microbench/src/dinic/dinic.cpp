@@ -1,6 +1,9 @@
 #include <benchmark.h>
 
 static int N;
+#define MAXN 128
+#define MAXM (MAXN * MAXN + MAXN * 2) * 2
+
 const int INF = 0x3f3f3f;
 
 struct Edge {
@@ -21,22 +24,13 @@ static inline T min(T x, T y) {
 
 struct Dinic {
   int n, m, s, t;
-  Edge *edges;
-  int *head, *nxt, *d, *cur, *queue;
-  bool *vis;
+  Edge edges[MAXM];
+  int head[MAXN*2 + 2];
+  int nxt[MAXM];
+  bool vis[MAXN*2 + 2];
+  int d[MAXN*2 + 2], cur[MAXN*2 + 2], queue[MAXN*2 + 2];
 
   void init(int n) {
-    int nold = (n - 2) / 2;
-    int maxm = (nold * nold + nold * 2) * 2;
-
-    edges = (Edge *)bench_alloc(sizeof(Edge) * maxm);
-    head = (int *)bench_alloc(sizeof(int) * n);
-    nxt = (int *)bench_alloc(sizeof(int) * maxm);
-    vis = (bool *)bench_alloc(sizeof(bool) * n);
-    d = (int *)bench_alloc(sizeof(int) * n);
-    cur = (int *)bench_alloc(sizeof(int) * n);
-    queue = (int *)bench_alloc(sizeof(int) * n);
-
     this->n = n;
     for (int i = 0; i < n; i ++) {
       head[i] = -1;

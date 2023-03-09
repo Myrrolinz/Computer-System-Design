@@ -5,9 +5,16 @@ FUNCTION
 INDEX
 	memset
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <string.h>
-	void *memset(void *<[dst]>, int <[c]>, size_t <[length]>);
+	void *memset(const void *<[dst]>, int <[c]>, size_t <[length]>);
+
+TRAD_SYNOPSIS
+	#include <string.h>
+	void *memset(<[dst]>, <[c]>, <[length]>)
+	void *<[dst]>;
+	int <[c]>;
+	size_t <[length]>;
 
 DESCRIPTION
 	This function converts the argument <[c]> into an unsigned
@@ -15,7 +22,7 @@ DESCRIPTION
 	pointed to by <[dst]> to the value.
 
 RETURNS
-	<<memset>> returns the value of <[dst]>.
+	<<memset>> returns the value of <[m]>.
 
 PORTABILITY
 <<memset>> is ANSI C.
@@ -27,70 +34,41 @@ QUICKREF
 */
 
 #include <string.h>
-#include "local.h"
 
-#define LBLOCKSIZE (sizeof(long))
-#define UNALIGNED(X)   ((long)X & (LBLOCKSIZE - 1))
-#define TOO_SMALL(LEN) ((LEN) < LBLOCKSIZE)
+#define STRIDE int
 
-void *
-__inhibit_loop_to_libcall
-memset (void *m,
-	int c,
+_PTR 
+_DEFUN (memset, (m, c, n),
+	_PTR m _AND
+	int c _AND
 	size_t n)
 {
   char *s = (char *) m;
+  int count;
+  STRIDE *ip;
 
-#if !defined(PREFER_SIZE_OVER_SPEED) && !defined(__OPTIMIZE_SIZE__)
-  unsigned int i;
-  unsigned long buffer;
-  unsigned long *aligned_addr;
-  unsigned int d = c & 0xff;	/* To avoid sign extension, copy C to an
-				   unsigned variable.  */
-
-  while (UNALIGNED (s))
+  if (c == 0)
     {
-      if (n--)
-        *s++ = (char) c;
-      else
-        return m;
+      /* Special case when storing zero onto an aligned boundary */
+      count = (((int) s) & (sizeof (STRIDE) - 1));
+      while (n != 0 && count > 0 && count != sizeof (STRIDE))
+	{
+	  *s++ = 0;
+	  count++;
+	  n--;
+	}
+      ip = (STRIDE *) s;
+      while (n >= sizeof (STRIDE))
+	{
+	  *ip++ = 0;
+	  n -= sizeof (STRIDE);
+	}
+      s = (char *) ip;
     }
-
-  if (!TOO_SMALL (n))
+  while (n-- != 0)
     {
-      /* If we get this far, we know that n is large and s is word-aligned. */
-      aligned_addr = (unsigned long *) s;
-
-      /* Store D into each char sized location in BUFFER so that
-         we can set large blocks quickly.  */
-      buffer = (d << 8) | d;
-      buffer |= (buffer << 16);
-      for (i = 32; i < LBLOCKSIZE * 8; i <<= 1)
-        buffer = (buffer << i) | buffer;
-
-      /* Unroll the loop.  */
-      while (n >= LBLOCKSIZE*4)
-        {
-          *aligned_addr++ = buffer;
-          *aligned_addr++ = buffer;
-          *aligned_addr++ = buffer;
-          *aligned_addr++ = buffer;
-          n -= 4*LBLOCKSIZE;
-        }
-
-      while (n >= LBLOCKSIZE)
-        {
-          *aligned_addr++ = buffer;
-          n -= LBLOCKSIZE;
-        }
-      /* Pick up the remainder with a bytewise loop.  */
-      s = (char*)aligned_addr;
+      *s++ = (char) c;
     }
-
-#endif /* not PREFER_SIZE_OVER_SPEED */
-
-  while (n--)
-    *s++ = (char) c;
 
   return m;
 }

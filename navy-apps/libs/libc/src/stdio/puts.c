@@ -24,11 +24,20 @@ INDEX
 INDEX
 	_puts_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 	int puts(const char *<[s]>);
 
-	int _puts_r(struct _reent *<[reent]>, const char *<[s]>);
+	int _puts_r(void *<[reent]>, const char *<[s]>);
+
+TRAD_SYNOPSIS
+	#include <stdio.h>
+	int puts(<[s]>)
+	char *<[s]>;
+
+	int _puts_r(<[reent]>, <[s]>)
+	char *<[reent]>;
+	char *<[s]>;
 
 DESCRIPTION
 <<puts>> writes the string at <[s]> (followed by a newline, instead of
@@ -38,8 +47,7 @@ The alternate function <<_puts_r>> is a reentrant version.  The extra
 argument <[reent]> is a pointer to a reentrancy structure.
 
 RETURNS
-If successful, the result is a nonnegative integer; otherwise, the
-result is <<EOF>>.
+If successful, the result is <<0>>; otherwise, the result is <<EOF>>.
 
 PORTABILITY
 ANSI C requires <<puts>>, but does not specify that the result on
@@ -53,27 +61,22 @@ Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 static char sccsid[] = "%W% (Berkeley) %G%";
 #endif /* LIBC_SCCS and not lint */
 
-#include <_ansi.h>
-#include <reent.h>
 #include <stdio.h>
 #include <string.h>
 #include "fvwrite.h"
-#include "local.h"
 
 /*
  * Write the given string to stdout, appending a newline.
  */
 
 int
-_puts_r (struct _reent *ptr,
-       const char * s)
+_DEFUN (_puts_r, (ptr, s),
+	struct _reent *ptr _AND
+	_CONST char * s)
 {
-#ifdef _FVWRITE_IN_STREAMIO
-  int result;
   size_t c = strlen (s);
   struct __suio uio;
   struct __siov iov[2];
-  FILE *fp;
 
   iov[0].iov_base = s;
   iov[0].iov_len = c;
@@ -83,48 +86,14 @@ _puts_r (struct _reent *ptr,
   uio.uio_iov = &iov[0];
   uio.uio_iovcnt = 2;
 
-  _REENT_SMALL_CHECK_INIT (ptr);
-  fp = _stdout_r (ptr);
-  CHECK_INIT (ptr, fp);
-  _newlib_flockfile_start (fp);
-  ORIENT (fp, -1);
-  result = (__sfvwrite_r (ptr, fp, &uio) ? EOF : '\n');
-  _newlib_flockfile_end (fp);
-  return result;
-#else
-  int result = EOF;
-  const char *p = s;
-  FILE *fp;
-  _REENT_SMALL_CHECK_INIT (ptr);
-
-  fp = _stdout_r (ptr);
-  CHECK_INIT (ptr, fp);
-  _newlib_flockfile_start (fp);
-  ORIENT (fp, -1);
-  /* Make sure we can write.  */
-  if (cantwrite (ptr, fp))
-    goto err;
-
-  while (*p)
-    {
-      if (__sputc_r (ptr, *p++, fp) == EOF)
-	goto err;
-    }
-  if (__sputc_r (ptr, '\n', fp) == EOF)
-    goto err;
-
-  result = '\n';
-
-err:
-  _newlib_flockfile_end (fp);
-  return result;
-#endif
+  return (__sfvwrite (_stdout_r (ptr), &uio) ? EOF : '\n');
 }
 
 #ifndef _REENT_ONLY
 
 int
-puts (char const * s)
+_DEFUN (puts, (s),
+	char _CONST * s)
 {
   return _puts_r (_REENT, s);
 }

@@ -5,14 +5,16 @@
 
 /* Nothing in newlib actually *calls* dtoa, they all call _dtoa_r, so this 
    is a safe way of providing it to the user. */
-#ifndef _REENT_ONLY
+#ifndef NO_REENT
 
 char *
-__dtoa (double d,
-	int mode,
-	int ndigits,
-	int *decpt,
-	int *sign,
+_DEFUN (__dtoa,
+	(d, mode, ndigits, decpt, sign, rve),
+	double d _AND
+	int mode _AND
+	int ndigits _AND
+	int *decpt _AND
+	int *sign _AND
 	char **rve)
 {
   return _dtoa_r (_REENT, d, mode, ndigits, decpt, sign, rve);

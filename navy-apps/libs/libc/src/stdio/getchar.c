@@ -24,11 +24,18 @@ INDEX
 INDEX
 	_getchar_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 	int getchar(void);
 
-	int _getchar_r(struct _reent *<[reent]>);
+	int _getchar_r(void *<[reent]>);
+
+TRAD_SYNOPSIS
+	#include <stdio.h>
+	int getchar();
+
+	int _getchar_r(<[reent]>)
+	char * <[reent]>;
 
 DESCRIPTION
 <<getchar>> is a macro, defined in <<stdio.h>>.  You can use <<getchar>>
@@ -64,30 +71,26 @@ static char sccsid[] = "%W% (Berkeley) %G%";
  * A subroutine version of the macro getchar.
  */
 
-#include <_ansi.h>
-#include <reent.h>
 #include <stdio.h>
-#include "local.h"
+#include <reent.h>
 
 #undef getchar
 
 int
-_getchar_r (struct _reent *reent)
+_getchar_r (f)
+     struct _reent *f;
 {
-  _REENT_SMALL_CHECK_INIT (reent);
-  return _getc_r (reent, _stdin_r (reent));
+  return getc (_stdin_r (f));
 }
 
 #ifndef _REENT_ONLY
 
 int
-getchar (void)
+getchar ()
 {
-  struct _reent *reent = _REENT;
+  /* CHECK_INIT is called (eventually) by __srefill.  */
 
-  /* CHECK_INIT is called (eventually) by __srefill_r.  */
-  _REENT_SMALL_CHECK_INIT (reent);
-  return _getc_r (reent, _stdin_r (reent));
+  return _getchar_r (_REENT);
 }
 
 #endif

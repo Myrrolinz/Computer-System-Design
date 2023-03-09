@@ -25,9 +25,13 @@ FUNCTION
 INDEX
 	clock
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <time.h>
 	clock_t clock(void);
+
+TRAD_SYNOPSIS
+	#include <time.h>
+	clock_t clock();
 
 DESCRIPTION
 Calculates the best available approximation of the cumulative amount
@@ -37,7 +41,7 @@ into seconds, divide by the macro <<CLOCKS_PER_SEC>>.
 RETURNS
 The amount of processor time used so far by your program, in units
 defined by the machine-dependent macro <<CLOCKS_PER_SEC>>.  If no
-measurement is available, the result is (clock_t)<<-1>>.
+measurement is available, the result is <<-1>>.
 
 PORTABILITY
 ANSI C requires <<clock>> and <<CLOCKS_PER_SEC>>.
@@ -55,7 +59,7 @@ clock ()
   struct tms tim_s;
   clock_t res;
 
-  if ((res = (clock_t) _times_r (_REENT, &tim_s)) != (clock_t) -1)
+  if ((res = (clock_t) _times_r (_REENT, &tim_s)) != -1)
     res = (clock_t) (tim_s.tms_utime + tim_s.tms_stime +
 		     tim_s.tms_cutime + tim_s.tms_cstime);
 

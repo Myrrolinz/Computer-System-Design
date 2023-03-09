@@ -21,13 +21,15 @@ FUNCTION
 
 INDEX
 	rewind
-INDEX
-	_rewind_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 	void rewind(FILE *<[fp]>);
-	void _rewind_r(struct _reent *<[ptr]>, FILE *<[fp]>);
+
+TRAD_SYNOPSIS
+	#include <stdio.h>
+	void rewind(<[fp]>)
+	FILE *<[fp]>;
 
 DESCRIPTION
 <<rewind>> returns the file position indicator (if any) for the file
@@ -47,24 +49,17 @@ No supporting OS subroutines are required.
 static char sccsid[] = "%W% (Berkeley) %G%";
 #endif /* LIBC_SCCS and not lint */
 
-#include <_ansi.h>
-#include <reent.h>
 #include <stdio.h>
 
 void
-_rewind_r (struct _reent * ptr,
-       register FILE * fp)
+_DEFUN (rewind, (fp),
+	register FILE * fp)
 {
-  (void) _fseek_r (ptr, fp, 0L, SEEK_SET);
+  (void) fflush (fp);
   clearerr (fp);
+  if (fp->_seek == NULL)
+    return;			/* ??? */
+  fp->_r = 0;
+  fp->_p = fp->_bf._base;
+  (void) (*fp->_seek) (fp->_cookie, (fpos_t) 0, SEEK_SET);
 }
-
-#ifndef _REENT_ONLY
-
-void
-rewind (register FILE * fp)
-{
-  _rewind_r (_REENT, fp);
-}
-
-#endif /* !_REENT_ONLY */

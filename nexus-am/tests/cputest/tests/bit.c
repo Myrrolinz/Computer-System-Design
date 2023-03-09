@@ -1,10 +1,9 @@
 #include "trap.h"
-#include <stdio.h>
+
 typedef unsigned char uint8_t;
 typedef char bool;
 __attribute__((noinline))
 bool getbit(void *buf, int offset){
-	printf("%d\n", offset);
 	int byte = offset >> 3;
 	offset &= 7;
 	uint8_t mask = 1 << offset;
@@ -24,7 +23,6 @@ int main() {
 	uint8_t buf[2];
 
 	buf[0] = 0xaa; 
-	buf[1] = 0x0;
 	nemu_assert(getbit(buf, 0) == 0);
 	nemu_assert(getbit(buf, 1) == 1);
 	nemu_assert(getbit(buf, 2) == 0);

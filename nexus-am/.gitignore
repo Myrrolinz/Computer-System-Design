@@ -1,4 +1,5 @@
 !*
+!*.*
 .*
 !.gitignore
 *~
@@ -7,7 +8,6 @@
 *.d
 *.pyc
 *.ini
-*.log
 tags
 cscope.*
 build/

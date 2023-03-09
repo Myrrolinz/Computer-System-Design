@@ -3,12 +3,12 @@
  */
 
 #include <_ansi.h>
-#include "std.h"
 
 double
-__exp10 (unsigned x)
+_DEFUN (__exp10, (x),
+	unsigned x)
 {
-  static const double powtab[] =
+  static _CONST double powtab[] =
   {1.0,
    10.0,
    100.0,

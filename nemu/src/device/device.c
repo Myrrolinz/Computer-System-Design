@@ -9,21 +9,29 @@
 #define TIMER_HZ 100
 #define VGA_HZ 50
 
-static struct itimerval it = {};
+static uint64_t jiffy = 0;
+static struct itimerval it;
 static int device_update_flag = false;
+static int update_screen_flag = false;
 
 void init_serial();
 void init_timer();
 void init_vga();
 void init_i8042();
 
-void timer_intr();
-void send_key(uint8_t, bool);
+extern void timer_intr();
+extern void send_key(uint8_t, bool);
+extern void update_screen();
+
 
 static void timer_sig_handler(int signum) {
+  jiffy ++;
   timer_intr();
 
   device_update_flag = true;
+  if (jiffy % (TIMER_HZ / VGA_HZ) == 0) {
+    update_screen_flag = true;
+  }
 
   int ret = setitimer(ITIMER_VIRTUAL, &it, NULL);
   Assert(ret == 0, "Can not set timer");
@@ -35,22 +43,25 @@ void device_update() {
   }
   device_update_flag = false;
 
+  if (update_screen_flag) {
+    update_screen();
+    update_screen_flag = false;
+  }
+
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
-      case SDL_QUIT: {
-                       void monitor_statistic();
-                       monitor_statistic();
-                       exit(0);
-                     }
+      case SDL_QUIT: exit(0);
 
                      // If a key was pressed
       case SDL_KEYDOWN:
       case SDL_KEYUP: {
-                        uint8_t k = event.key.keysym.scancode;
-                        bool is_keydown = (event.key.type == SDL_KEYDOWN);
-                        send_key(k, is_keydown);
-                        break;
+                        if (event.key.repeat == 0) {
+                          uint8_t k = event.key.keysym.scancode;
+                          bool is_keydown = (event.key.type == SDL_KEYDOWN);
+                          send_key(k, is_keydown);
+                          break;
+                        }
                       }
       default: break;
     }

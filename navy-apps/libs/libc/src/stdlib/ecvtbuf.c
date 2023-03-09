@@ -7,7 +7,7 @@ INDEX
 INDEX
 	fcvtbuf
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 
 	char *ecvtbuf(double <[val]>, int <[chars]>, int *<[decpt]>,
@@ -15,6 +15,23 @@ SYNOPSIS
 
 	char *fcvtbuf(double <[val]>, int <[decimals]>, int *<[decpt]>,
                        int *<[sgn]>, char *<[buf]>);
+
+TRAD_SYNOPSIS
+	#include <stdio.h>
+
+	char *ecvtbuf(<[val]>, <[chars]>, <[decpt]>, <[sgn]>, <[buf]>);
+	double <[val]>;
+	int <[chars]>;
+	int *<[decpt]>;
+	int *<[sgn]>;
+	char *<[buf]>;
+
+	char *fcvtbuf(<[val]>, <[decimals]>, <[decpt]>, <[sgn]>, <[buf]>);
+	double <[val]>;
+	int <[decimals]>;
+	int *<[decpt]>;
+	int *<[sgn]>;
+	char *<[buf]>;
 
 DESCRIPTION
 	<<ecvtbuf>> and <<fcvtbuf>> produce (null-terminated) strings
@@ -58,12 +75,13 @@ Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 #include "local.h"
 
 static void
-print_f (struct _reent *ptr,
-	char *buf,
-	double invalue,
-	int ndigit,
-	char type,
-	int dot,
+_DEFUN (print_f, (ptr, buf, invalue, ndigit, type, dot, mode),
+	struct _reent *ptr _AND
+	char *buf _AND
+	double invalue _AND
+	int ndigit _AND
+	char type _AND
+	int dot _AND
 	int mode)
 {
   int decpt;
@@ -125,13 +143,15 @@ print_f (struct _reent *ptr,
    WIDTH is the number of digits of precision after the decimal point.  */
 
 static void
-print_e (struct _reent *ptr,
-	char *buf,
-	double invalue,
-	int width,
-	char type,
+_DEFUN (print_e, (ptr, buf, invalue, width, type, dot),
+	struct _reent *ptr _AND
+	char *buf _AND
+	double invalue _AND
+	int width _AND
+	char type _AND
 	int dot)
 {
+  int dp;
   int sign;
   char *end;
   char *p;
@@ -207,13 +227,13 @@ print_e (struct _reent *ptr,
    support ecvt and fcvt, which aren't ANSI anyway.  */
 
 char *
-fcvtbuf (double invalue,
-	int ndigit,
-	int *decpt,
-	int *sign,
+_DEFUN (fcvtbuf, (invalue, ndigit, decpt, sign, fcvt_buf),
+	double invalue _AND
+	int ndigit _AND
+	int *decpt _AND
+	int *sign _AND
 	char *fcvt_buf)
 {
-  struct _reent *reent = _REENT;
   char *save;
   char *p;
   char *end;
@@ -221,32 +241,31 @@ fcvtbuf (double invalue,
 
   if (fcvt_buf == NULL)
     {
-      if (reent->_cvtlen <= ndigit + 35)
+      if (_REENT->_cvtlen <= ndigit)
 	{
-	  if ((fcvt_buf = (char *) _realloc_r (reent, reent->_cvtbuf,
-					       ndigit + 36)) == NULL)
+	  if ((fcvt_buf = (char *) _realloc_r (_REENT, _REENT->_cvtbuf,
+					       ndigit + 1)) == NULL)
 	    return NULL;
-	  reent->_cvtlen = ndigit + 36;
-	  reent->_cvtbuf = fcvt_buf;
+	  _REENT->_cvtlen = ndigit + 1;
+	  _REENT->_cvtbuf = fcvt_buf;
 	}
 
-      fcvt_buf = reent->_cvtbuf ;
+      fcvt_buf = _REENT->_cvtbuf ;
     }
 
   save = fcvt_buf;
 
   if (invalue < 1.0 && invalue > -1.0)
     {
-      p = _dtoa_r (reent, invalue, 2, ndigit, decpt, sign, &end);
+      p = _dtoa_r (_REENT, invalue, 2, ndigit, decpt, sign, &end);
     }
   else
     {
-      p = _dtoa_r (reent, invalue, 3, ndigit, decpt, sign, &end);
+      p = _dtoa_r (_REENT, invalue, 3, ndigit, decpt, sign, &end);
     }
 
   /* Now copy */
 
-  done = -*decpt;
   while (p < end)
     {
       *fcvt_buf++ = *p++;
@@ -263,13 +282,13 @@ fcvtbuf (double invalue,
 }
 
 char *
-ecvtbuf (double invalue,
-	int ndigit,
-	int *decpt,
-	int *sign,
+_DEFUN (ecvtbuf, (invalue, ndigit, decpt, sign, fcvt_buf),
+	double invalue _AND
+	int ndigit _AND
+	int *decpt _AND
+	int *sign _AND
 	char *fcvt_buf)
 {
-  struct _reent *reent = _REENT;
   char *save;
   char *p;
   char *end;
@@ -277,21 +296,21 @@ ecvtbuf (double invalue,
 
   if (fcvt_buf == NULL)
     {
-      if (reent->_cvtlen <= ndigit)
+      if (_REENT->_cvtlen <= ndigit)
 	{
-	  if ((fcvt_buf = (char *) _realloc_r (reent, reent->_cvtbuf,
+	  if ((fcvt_buf = (char *) _realloc_r (_REENT, _REENT->_cvtbuf,
 					       ndigit + 1)) == NULL)
 	    return NULL;
-	  reent->_cvtlen = ndigit + 1;
-	  reent->_cvtbuf = fcvt_buf;
+	  _REENT->_cvtlen = ndigit + 1;
+	  _REENT->_cvtbuf = fcvt_buf;
 	}
 
-      fcvt_buf = reent->_cvtbuf ;
+      fcvt_buf = _REENT->_cvtbuf ;
     }
 
   save = fcvt_buf;
 
-  p = _dtoa_r (reent, invalue, 2, ndigit, decpt, sign, &end);
+  p = _dtoa_r (_REENT, invalue, 2, ndigit, decpt, sign, &end);
 
   /* Now copy */
 
@@ -313,11 +332,12 @@ ecvtbuf (double invalue,
 #endif
 
 char *
-_gcvt (struct _reent *ptr,
-	double invalue,
-	int ndigit,
-	char *buf,
-	char type,
+_DEFUN (_gcvt, (ptr, invalue, ndigit, buf, type, dot),
+	struct _reent *ptr _AND
+	double invalue _AND
+	int ndigit _AND
+	char *buf _AND
+	char type _AND
 	int dot)
 {
   char *save = buf;
@@ -420,12 +440,13 @@ _gcvt (struct _reent *ptr,
 }
 
 char *
-_dcvt (struct _reent *ptr,
-	char *buffer,
-	double invalue,
-	int precision,
-	int width,
-	char type,
+_DEFUN (_dcvt, (ptr, buffer, invalue, precision, width, type, dot),
+	struct _reent *ptr _AND
+	char *buffer _AND
+	double invalue _AND
+	int precision _AND
+	int width _AND
+	char type _AND
 	int dot)
 {
   switch (type)

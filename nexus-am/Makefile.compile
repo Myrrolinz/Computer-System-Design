@@ -1,48 +1,86 @@
-$(shell mkdir -p $(DST_DIR))
+# Compilation flags
+ARCH_SPLIT = $(subst -, ,$(ARCH))
+ISA        = $(word 1,$(ARCH_SPLIT))
+PLATFORM   = $(word 2,$(ARCH_SPLIT))
 
-OBJS      = $(addprefix $(DST_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
-AS        = $(CROSS_COMPILE)gcc
-CC        = $(CROSS_COMPILE)gcc
-CXX       = $(CROSS_COMPILE)g++
-LD        = $(CROSS_COMPILE)ld
-OBJDUMP   = $(CROSS_COMPILE)objdump
-OBJCOPY   = $(CROSS_COMPILE)objcopy
-READELF   = $(CROSS_COMPILE)readelf
+ifeq ($(ISA), mips32)
+CROSS_COMPILE = mips-linux-gnu-
+endif
+
+ifeq ($(ISA), riscv32)
+CROSS_COMPILE = riscv32-unknown-elf-
+endif
+
+ifeq ($(ISA), riscv64)
+CROSS_COMPILE = riscv64-unknown-linux-gnu-
+endif
+
+AS = $(CROSS_COMPILE)gcc
+CC = $(CROSS_COMPILE)gcc
+CXX = $(CROSS_COMPILE)g++
+LD = $(CROSS_COMPILE)ld
+OBJCOPY = $(CROSS_COMPILE)objcopy
+READELF = $(CROSS_COMPILE)readelf
+
+ISA_DEF = __ISA_$(shell echo $(ISA) | tr a-z A-Z)__
+
 INCLUDES  = $(addprefix -I, $(INC_DIR)) -I$(AM_HOME)/am/
-INCLUDES += -I$(AM_HOME)/am/include
-CFLAGS   += -O2 -MMD -Wall -Werror -ggdb $(INCLUDES) \
-            -D__ISA__=\"$(ISA)\" -D__ISA_$(shell echo $(ISA) | tr a-z A-Z)__ \
-            -D__ARCH__=$(ARCH) -D__ARCH_$(shell echo $(ARCH) | tr a-z A-Z | tr - _) \
-            -DISA_H=\"$(ISA).h\" \
-            -DARCH_H=\"arch/$(ARCH).h\" \
-            -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector \
-			-Wno-main
-CXXFLAGS +=  $(CFLAGS) -ffreestanding -fno-rtti -fno-exceptions
-ASFLAGS  += -MMD $(INCLUDES)
+INCLUDES += -I$(AM_HOME)/am/arch/$(ARCH)/include
+CFLAGS   += -std=gnu99 -O2 -MMD -Wall -Werror -ggdb $(INCLUDES) -D$(ISA_DEF) -fno-builtin
+CXXFLAGS += -std=c++11 -O2 -MMD -Wall -Werror -ggdb $(INCLUDES) -D$(ISA_DEF) -fno-builtin
+ASFLAGS  +=                -MMD                     $(INCLUDES) -D$(ISA_DEF)
 
-## Compliation rule for .c -> .o (using gcc)
-$(DST_DIR)/%.o: %.c
-	@mkdir -p $(dir $@) && echo + CC $<
-	@$(CC) -std=gnu11 $(CFLAGS) -c -o $@ $(realpath $<)
+ifeq ($(ISA), mips32)
+CFLAGS_COMMON = -fno-pic -static -fno-strict-aliasing -fno-builtin -fno-stack-protector -fno-delayed-branch -mno-abicalls -march=mips32 -mno-check-zero-division -EL -mno-llsc -mno-imadd -mno-mad
+CFLAGS   += $(CFLAGS_COMMON)
+CXXFLAGS += $(CFLAGS_COMMON) -ffreestanding -fno-rtti -fno-exceptions
+ASFLAGS  += -march=mips32 -EL -mno-check-zero-division -O0 -mno-abicalls -fno-pic -fno-delayed-branch
+endif
 
-## Compliation rule for .cpp -> .o (using g++)
+ifeq ($(ISA), riscv32)
+# it seems that mstrict-align does not work?
+CFLAGS_COMMON = -fno-pic -static -mcmodel=medany -fno-delete-null-pointer-checks -mabi=ilp32 -march=rv32i -mstrict-align
+CFLAGS   += $(CFLAGS_COMMON)
+CXXFLAGS += $(CFLAGS_COMMON) -ffreestanding -fno-rtti -fno-exceptions
+endif
+
+ifeq ($(ISA), riscv64)
+CFLAGS_COMMON = -fno-pic -static -mcmodel=medany -fno-delete-null-pointer-checks -mabi=lp64 -march=rv64imac
+CFLAGS   += $(CFLAGS_COMMON)
+CXXFLAGS += $(CFLAGS_COMMON) -ffreestanding -fno-rtti -fno-exceptions
+endif
+
+ifeq ($(ISA), x86)
+CFLAGS_COMMON = -m32 -fno-pic -fno-builtin -fno-stack-protector -fno-omit-frame-pointer -march=i386 -mstringop-strategy=unrolled_loop
+CFLAGS   += $(CFLAGS_COMMON)
+CXXFLAGS += $(CFLAGS_COMMON) -ffreestanding -fno-rtti -fno-exceptions
+ASFLAGS  += -m32
+endif
+
+# Files to be compiled
+OBJS = $(addprefix $(DST_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
+
+# Compilation patterns
 $(DST_DIR)/%.o: %.cpp
-	@mkdir -p $(dir $@) && echo + CXX $<
-	@$(CXX) -std=c++11 $(CXXFLAGS) -c -o $@ $(realpath $<)
-
-## Compliation rule for .S -> .o (using as)
+	@echo + CXX $<
+	@mkdir -p $(dir $@)
+	@$(CXX) $(CXXFLAGS) -c -o $@ $<
+$(DST_DIR)/%.o: %.c
+	@echo + CC $<
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $<
 $(DST_DIR)/%.o: %.S
-	@mkdir -p $(dir $@) && echo + AS $<
-	@$(AS) $(ASFLAGS) -c -o $@ $(realpath $<)
+	@echo + AS $<
+	@mkdir -p $(dir $@)
+	@$(AS) $(ASFLAGS) -c -o $@ $<
 
-## Paste in dependencies (gcc generated .d) here
--include $(addprefix $(DST_DIR)/, $(addsuffix .d, $(basename $(SRCS))))
+# Depencies
+DEPS = $(addprefix $(DST_DIR)/, $(addsuffix .d, $(basename $(SRCS))))
+-include $(DEPS)
 
-## Compilation rules for libraries
-am:
-	@$(MAKE) -s -C $(AM_HOME)
-
-$(sort $(LIBS)): %:
-	@$(MAKE) -s -C $(AM_HOME)/libs/$*
-
+# Dependent AM and libraries
 .PHONY: $(LIBS) am
+am:
+	@$(MAKE) -C $(AM_HOME)
+$(sort $(LIBS)): %:
+	-@$(MAKE) -C $(AM_HOME)/libs/$*

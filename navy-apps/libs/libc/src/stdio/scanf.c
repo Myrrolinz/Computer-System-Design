@@ -16,50 +16,60 @@
  */
 
 #include <_ansi.h>
-#include <reent.h>
 #include <stdio.h>
-#include <stdarg.h>
 #include "local.h"
+
+#ifdef _HAVE_STDC
+#include <stdarg.h>
+#else
+#include <varargs.h>
+#endif
 
 #ifndef _REENT_ONLY
 
 int
-scanf(const char *__restrict fmt, ...)
+#ifdef _HAVE_STDC
+scanf (const char *fmt, ...)
+#else
+scanf (fmt, va_alist)
+     char *fmt;
+     va_dcl
+#endif
 {
   int ret;
   va_list ap;
-  struct _reent *reent = _REENT;
 
-  _REENT_SMALL_CHECK_INIT (reent);
+#ifdef _HAVE_STDC
   va_start (ap, fmt);
-  ret = _vfscanf_r (reent, _stdin_r (reent), fmt, ap);
+#else
+  va_start (ap);
+#endif
+  ret = __svfscanf (_stdin_r (_REENT), fmt, ap);
   va_end (ap);
   return ret;
 }
 
-#ifdef _NANO_FORMATTED_IO
-int
-iscanf (const char *, ...)
-       _ATTRIBUTE ((__alias__("scanf")));
 #endif
 
-#endif /* !_REENT_ONLY */
-
 int
-_scanf_r(struct _reent *ptr, const char *__restrict fmt, ...)
+#ifdef _HAVE_STDC
+_scanf_r (struct _reent *ptr, const char *fmt, ...)
+#else
+_scanf_r (ptr, fmt, va_alist)
+     struct _reent *ptr;
+     char *fmt;
+     va_dcl
+#endif
 {
   int ret;
   va_list ap;
 
-  _REENT_SMALL_CHECK_INIT (ptr);
+#ifdef _HAVE_STDC
   va_start (ap, fmt);
-  ret = _vfscanf_r (ptr, _stdin_r (ptr), fmt, ap);
+#else
+  va_start (ap);
+#endif
+  ret = __svfscanf (_stdin_r (ptr), fmt, ap);
   va_end (ap);
   return (ret);
 }
-
-#ifdef _NANO_FORMATTED_IO
-int
-_iscanf_r (struct _reent *, const char *, ...)
-       _ATTRIBUTE ((__alias__("_scanf_r")));
-#endif

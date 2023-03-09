@@ -12,9 +12,14 @@ FUNCTION
 INDEX
 	exit
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdlib.h>
 	void exit(int <[code]>);
+
+TRAD_SYNOPSIS
+	#include <stdlib.h>
+	void exit(<[code]>)
+	int <[code]>;
 
 DESCRIPTION
 Use <<exit>> to return control from a program to the host operating
@@ -41,25 +46,27 @@ Supporting OS subroutines required: <<_exit>>.
 */
 
 #include <stdlib.h>
-#include <unistd.h>	/* for _exit() declaration */
 #include <reent.h>
-#include "atexit.h"
+
+#ifndef _REENT_ONLY
 
 /*
  * Exit, flushing stdio buffers if necessary.
  */
 
-void
-exit (int code)
+void 
+_DEFUN (exit, (code),
+	int code)
 {
-#ifdef _LITE_EXIT
-  /* Refer to comments in __atexit.c for more details of lite exit.  */
-  void __call_exitprocs (int, void *) __attribute__((weak));
-  if (__call_exitprocs)
-#endif
-    __call_exitprocs (code, NULL);
+  register struct _atexit *p;
+  register int n;
 
-  if (_GLOBAL_REENT->__cleanup)
-    (*_GLOBAL_REENT->__cleanup) (_GLOBAL_REENT);
+  for (p = _REENT->_atexit; p; p = p->_next)
+    for (n = p->_ind; --n >= 0;)
+      (*p->_fns[n]) ();
+  if (_REENT->__cleanup)
+    (*_REENT->__cleanup) (_REENT);
   _exit (code);
 }
+
+#endif

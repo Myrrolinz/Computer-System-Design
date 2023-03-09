@@ -1,7 +1,7 @@
 #include "trap.h"
 
-volatile int A[10];
-volatile int b;
+int A[10];
+int b;
 
 int main() {
 	A[0] = 0;

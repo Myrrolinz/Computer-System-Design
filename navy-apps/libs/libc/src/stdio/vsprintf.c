@@ -1,3 +1,5 @@
+/* doc in vfprintf.c */
+
 /*
  * Copyright (c) 1990 The Regents of the University of California.
  * All rights reserved.
@@ -14,7 +16,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-/* doc in vfprintf.c */
 
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "%W% (Berkeley) %G%";
@@ -24,33 +25,17 @@ static char sccsid[] = "%W% (Berkeley) %G%";
 #include <reent.h>
 #include <stdio.h>
 #include <limits.h>
+#ifdef _HAVE_STDC
 #include <stdarg.h>
-
-#include "local.h"
-
-#ifndef _REENT_ONLY
-
-int
-vsprintf (char *__restrict str,
-       const char *__restrict fmt,
-       va_list ap)
-{
-  return _vsprintf_r (_REENT, str, fmt, ap);
-}
-
-#ifdef _NANO_FORMATTED_IO
-int
-vsiprintf (char *, const char *, __VALIST)
-       _ATTRIBUTE ((__alias__("vsprintf")));
+#else
+#include <varargs.h>
 #endif
 
-#endif /* !_REENT_ONLY */
-
 int
-_vsprintf_r (struct _reent *ptr,
-       char *__restrict str,
-       const char *__restrict fmt,
-       va_list ap)
+vsprintf (str, fmt, ap)
+     char *str;
+     char _CONST *fmt;
+     va_list ap;
 {
   int ret;
   FILE f;
@@ -58,14 +43,8 @@ _vsprintf_r (struct _reent *ptr,
   f._flags = __SWR | __SSTR;
   f._bf._base = f._p = (unsigned char *) str;
   f._bf._size = f._w = INT_MAX;
-  f._file = -1;  /* No file. */
-  ret = _svfprintf_r (ptr, &f, fmt, ap);
+  f._data = _REENT;
+  ret = vfprintf (&f, fmt, ap);
   *f._p = 0;
   return ret;
 }
-
-#ifdef _NANO_FORMATTED_IO
-int
-_vsiprintf_r (struct _reent *, char *, const char *, __VALIST)
-       _ATTRIBUTE ((__alias__("_vsprintf_r")));
-#endif

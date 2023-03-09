@@ -1,26 +1,14 @@
-## Always build "default"
-.DEFAULT_GOAL = default
+ifneq ($(MAKECMDGOALS),clean) # ignore check for make clean
 
-## Ignore checks for make clean
-ifneq ($(MAKECMDGOALS),clean)
-
-## Check: Environment variable $AM_HOME must exist
-ifeq ($(AM_HOME),) 
+ifeq ($(AM_HOME),) # AM_HOME must exist
 $(error Environment variable AM_HOME must be defined.)
 endif
 
-## Check: Environment variable $ARCH must be in the supported list
-ARCH  ?= x86-nemu
-ARCHS := $(basename $(notdir $(shell ls $(AM_HOME)/am/arch/*.mk)))
-ifeq ($(filter $(ARCHS), $(ARCH)), )
+ARCH ?= native
+ARCHS = $(shell ls $(AM_HOME)/am/arch/)
+
+ifeq ($(filter $(ARCHS), $(ARCH)), ) # ARCH must be valid
 $(error Invalid ARCH. Supported: $(ARCHS))
 endif
-
-## ARCH=x86-qemu -> ISA=x86; PLATFORM=qemu
-ARCH_SPLIT  = $(subst -, ,$(ARCH))
-ISA        ?= $(word 1,$(ARCH_SPLIT))
-PLATFORM   ?= $(word 2,$(ARCH_SPLIT))
-
-include $(AM_HOME)/am/arch/$(ARCH).mk
 
 endif

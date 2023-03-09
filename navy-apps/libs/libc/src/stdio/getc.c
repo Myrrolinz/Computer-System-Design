@@ -21,15 +21,15 @@ FUNCTION
 
 INDEX
 	getc
-INDEX
-	_getc_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 	int getc(FILE *<[fp]>);
 
+TRAD_SYNOPSIS
 	#include <stdio.h>
-	int _getc_r(struct _reent *<[ptr]>, FILE *<[fp]>);
+	int getc(<[fp]>)
+	FILE *<[fp]>;
 
 DESCRIPTION
 <<getc>> is a macro, defined in <<stdio.h>>.  You can use <<getc>>
@@ -38,9 +38,6 @@ identified by <[fp]>.  As a side effect, <<getc>> advances the file's
 current position indicator.
 
 For a subroutine version of this macro, see <<fgetc>>.
-
-The <<_getc_r>> function is simply the reentrant version of <<getc>>
-which passes an additional reentrancy structure pointer argument: <[ptr]>.
 
 RETURNS
 The next character (read as an <<unsigned char>>, and cast to
@@ -65,9 +62,7 @@ Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 static char sccsid[] = "%W% (Berkeley) %G%";
 #endif /* LIBC_SCCS and not lint */
 
-#include <_ansi.h>
 #include <stdio.h>
-#include "local.h"
 
 /*
  * A subroutine version of the macro getc.
@@ -76,30 +71,10 @@ static char sccsid[] = "%W% (Berkeley) %G%";
 #undef getc
 
 int
-_getc_r (struct _reent *ptr,
-       register FILE *fp)
+getc (fp)
+     register FILE *fp;
 {
-  int result;
-  CHECK_INIT (ptr, fp);
-  _newlib_flockfile_start (fp);
-  result = __sgetc_r (ptr, fp);
-  _newlib_flockfile_end (fp);
-  return result;
+  /* CHECK_INIT is called (eventually) by __srefill.  */
+
+  return __sgetc (fp);
 }
-
-#ifndef _REENT_ONLY
-
-int
-getc (register FILE *fp)
-{
-  int result;
-  struct _reent *reent = _REENT;
-
-  CHECK_INIT (reent, fp);
-  _newlib_flockfile_start (fp);
-  result = __sgetc_r (reent, fp);
-  _newlib_flockfile_end (fp);
-  return result;
-}
-
-#endif /* !_REENT_ONLY */

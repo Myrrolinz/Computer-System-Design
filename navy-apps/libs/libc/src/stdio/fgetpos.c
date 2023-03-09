@@ -1,33 +1,19 @@
 /*
- * Copyright (c) 1990 The Regents of the University of California.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms are permitted
- * provided that the above copyright notice and this paragraph are
- * duplicated in all such forms and that any documentation,
- * advertising materials, and other materials related to such
- * distribution and use acknowledge that the software was developed
- * by the University of California, Berkeley.  The name of the
- * University may not be used to endorse or promote products derived
- * from this software without specific prior written permission.
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- */
-
-/*
 FUNCTION
 <<fgetpos>>---record position in a stream or file
 
 INDEX
 	fgetpos
-INDEX
-	_fgetpos_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
-	int fgetpos(FILE *restrict <[fp]>, fpos_t *restrict <[pos]>);
-	int _fgetpos_r(struct _reent *<[ptr]>, FILE *restrict <[fp]>, fpos_t *restrict <[pos]>);
+	int fgetpos(FILE *<[fp]>, fpos_t *<[pos]>);
+
+TRAD_SYNOPSIS
+	#include <stdio.h>
+	int fgetpos(<[fp]>, <[pos]>)
+	FILE *<[fp]>;
+	fpos_t *<[pos]>;
 
 DESCRIPTION
 Objects of type <<FILE>> can have a ``position'' that records how much
@@ -60,31 +46,16 @@ conforming C implementations may return a different result from
 No supporting OS subroutines are required.
 */
 
-#include <_ansi.h>
-#include <reent.h>
 #include <stdio.h>
 
 int
-_fgetpos_r (struct _reent * ptr,
-       FILE *__restrict fp,
-       _fpos_t *__restrict pos)
+_DEFUN (fgetpos, (fp, pos),
+	FILE * fp _AND
+	fpos_t * pos)
 {
-  *pos = _ftell_r (ptr, fp);
+  *pos = ftell (fp);
 
   if (*pos != -1)
-    {
-      return 0;
-    }
+    return 0;
   return 1;
 }
-
-#ifndef _REENT_ONLY
-
-int
-fgetpos (FILE *__restrict fp,
-       _fpos_t *__restrict pos)
-{
-  return _fgetpos_r (_REENT, fp, pos);
-}
-
-#endif /* !_REENT_ONLY */

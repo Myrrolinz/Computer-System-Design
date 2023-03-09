@@ -21,15 +21,16 @@ FUNCTION
 
 INDEX
 	putc
-INDEX
-	_putc_r
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdio.h>
 	int putc(int <[ch]>, FILE *<[fp]>);
 
+TRAD_SYNOPSIS
 	#include <stdio.h>
-	int _putc_r(struct _reent *<[ptr]>, int <[ch]>, FILE *<[fp]>);
+	int putc(<[ch]>, <[fp]>)
+	int <[ch]>;
+	FILE *<[fp]>;
 
 DESCRIPTION
 <<putc>> is a macro, defined in <<stdio.h>>.  <<putc>>
@@ -43,9 +44,6 @@ current value of the position indicator, and the position indicator
 advances by one.
 
 For a subroutine version of this macro, see <<fputc>>.
-
-The <<_putc_r>> function is simply the reentrant version of
-<<putc>> that takes an additional reentrant structure argument: <[ptr]>.
 
 RETURNS
 If successful, <<putc>> returns its argument <[ch]>.  If an error
@@ -67,9 +65,7 @@ Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
 static char sccsid[] = "%W% (Berkeley) %G%";
 #endif /* LIBC_SCCS and not lint */
 
-#include <_ansi.h>
 #include <stdio.h>
-#include "local.h"
 
 /*
  * A subroutine version of the macro putc.
@@ -78,35 +74,11 @@ static char sccsid[] = "%W% (Berkeley) %G%";
 #undef putc
 
 int
-_putc_r (struct _reent *ptr,
-       int c,
-       register FILE *fp)
+putc (c, fp)
+     int c;
+     register FILE *fp;
 {
-  int result;
-  CHECK_INIT (ptr, fp);
-  _newlib_flockfile_start (fp);
-  result = __sputc_r (ptr, c, fp);
-  _newlib_flockfile_end (fp);
-  return result;
+  /* CHECK_INIT is (eventually) called by __swbuf.  */
+
+  return __sputc (c, fp);
 }
-
-#ifndef _REENT_ONLY
-int
-putc (int c,
-       register FILE *fp)
-{
-#if !defined(PREFER_SIZE_OVER_SPEED) && !defined(__OPTIMIZE_SIZE__)
-  int result;
-  struct _reent *reent = _REENT;
-
-  CHECK_INIT (reent, fp);
-  _newlib_flockfile_start (fp);
-  result = __sputc_r (reent, c, fp);
-  _newlib_flockfile_end (fp);
-  return result;
-#else
-  return _putc_r (_REENT, c, fp);
-#endif
-}
-#endif /* !_REENT_ONLY */
-

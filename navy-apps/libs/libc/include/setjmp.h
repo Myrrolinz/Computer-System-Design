@@ -4,22 +4,19 @@
 */
 
 #ifndef _SETJMP_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 #define _SETJMP_H_
 
 #include "_ansi.h"
 #include <machine/setjmp.h>
 
-_BEGIN_STD_C
+void	_EXFUN(longjmp,(jmp_buf __jmpb, int __retval));
+int	_EXFUN(setjmp,(jmp_buf __jmpb));
 
-#ifdef __GNUC__
-void	longjmp (jmp_buf __jmpb, int __retval)
-			__attribute__ ((__noreturn__));
-#else
-void	longjmp (jmp_buf __jmpb, int __retval);
+#ifdef __cplusplus
+}
 #endif
-int	setjmp (jmp_buf __jmpb);
-
-_END_STD_C
-
 #endif /* _SETJMP_H_ */
 

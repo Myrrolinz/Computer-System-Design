@@ -7,13 +7,18 @@ INDEX
 INDEX
 	environ
 
-SYNOPSIS
+ANSI_SYNOPSIS
 	#include <stdlib.h>
 	char *getenv(const char *<[name]>);
 
+TRAD_SYNOPSIS
+	#include <stdlib.h>
+	char *getenv(<[name]>)
+	char *<[name]>;
+
 DESCRIPTION
 <<getenv>> searches the list of environment variable names and values
-(using the global pointer ``<<char **environ>>'') for a variable whose
+(using the global pointer `<<char **environ>>') for a variable whose
 name matches the string at <[name]>.  If a variable name matches,
 <<getenv>> returns a pointer to the associated value.
 
@@ -28,8 +33,13 @@ variables vary from one system to another.
 <<getenv>> requires a global pointer <<environ>>.
 */
 
+/* This file may have been modified by DJ Delorie (Jan 1991).  If so,
+** these modifications are Coyright (C) 1991 DJ Delorie, 24 Kirsten Ave,
+** Rochester NH, 03867-2954, USA.
+*/
+
 /*
- * Copyright (c) 1987, 2000 Regents of the University of California.
+ * Copyright (c) 1987 Regents of the University of California.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -47,11 +57,11 @@ variables vary from one system to another.
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef _REENT_ONLY
-
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+
+extern char **environ;
 
 /*
  * _findenv --
@@ -64,10 +74,30 @@ variables vary from one system to another.
  */
 
 char *
-_findenv (register const char *name,
+_DEFUN (_findenv, (name, offset),
+	register _CONST char *name _AND
 	int *offset)
 {
-  return _findenv_r (_REENT, name, offset);
+  register int len;
+  register char **p;
+  _CONST char *c;
+
+  c = name;
+  len = 0;
+  while (*c && *c != '=')
+    {
+      c++;
+      len++;
+    }
+
+  for (p = environ; *p; ++p)
+    if (!strncmp (*p, name, len))
+      if (*(c = *p + len) == '=')
+	{
+	  *offset = p - environ;
+	  return (char *) (++c);
+	}
+  return NULL;
 }
 
 /*
@@ -76,11 +106,11 @@ _findenv (register const char *name,
  */
 
 char *
-getenv (const char *name)
+_DEFUN (getenv, (name),
+	_CONST char *name)
 {
   int offset;
+  char *_findenv ();
 
-  return _findenv_r (_REENT, name, &offset);
+  return _findenv (name, &offset);
 }
-
-#endif /* !_REENT_ONLY */
