@@ -37,7 +37,7 @@ static struct rule {
   {"&&", TK_AND},
   {"\\|\\|", TK_OR},
   {"!", '!'},
-  {"\\+", '+'},         
+  {"\\+", '+'},     // plus      
   {"-", '-'},
   {"\\*", '*'},
   {"\\/", '/'},
@@ -96,35 +96,34 @@ static bool make_token(char *e) {
          * to record the token in the array `tokens'. For certain types
          * of tokens, some extra actions should be performed.
          */
-        if(substr_len > 32) {
+        if(substr_len > 32) { //检查是否超过最大长度
           assert(0);
         }
-        if(rules[i].token_type == TK_NOTYPE) {
-          break;
-        }
-        else {
-          tokens[nr_token].type = rules[i].token_type;
-          switch (rules[i].token_type) {
-          case TK_NUMBER:
-            strncpy(tokens[nr_token].str, substr_start, substr_len);
-            *(tokens[nr_token].str + substr_len) = '\0';
-            break;
-          case TK_HEX:
-            strncpy(tokens[nr_token].str, substr_start + 2, substr_len - 2); //跳过开头的0x
-            *(tokens[nr_token].str + substr_len - 2) = '\0';
-            break;
-          case TK_REG: 
-            strncpy(tokens[nr_token].str, substr_start + 1, substr_len - 1); //跳过开头的$
-            *(tokens[nr_token].str + substr_len - 1) = '\0';
-          }
-          printf("Success record : nr_token = %d, dtype = %d, str = %s\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
-          nr_token += 1;
-          break;
-        }
-      }
-    }
-
-    if (i == NR_REGEX) {
+        if(rules[i].token_type == TK_NOTYPE) { //跳过空格
+          break; 
+        } 
+        else { 
+          tokens[nr_token].type = rules[i].token_type; 
+          switch (rules[i].token_type) { 
+          case TK_NUMBER: //数字
+            strncpy(tokens[nr_token].str, substr_start, substr_len); 
+            *(tokens[nr_token].str + substr_len) = '\0'; 
+            break; 
+          case TK_HEX: //16进制数
+            strncpy(tokens[nr_token].str, substr_start + 2, substr_len - 2); //跳过开头的0x 
+            *(tokens[nr_token].str + substr_len - 2) = '\0'; 
+            break; 
+          case TK_REG:  //寄存器
+            strncpy(tokens[nr_token].str, substr_start + 1, substr_len - 1); //跳过开头的$ 
+            *(tokens[nr_token].str + substr_len - 1) = '\0'; 
+          } 
+          printf("Success record : nr_token = %d, dtype = %d, str = %s\n", nr_token, tokens[nr_token].type, tokens[nr_token].str); 
+          nr_token += 1; //记录成功后，nr_token加1
+          break; 
+        } 
+      } 
+    } 
+    if (i == NR_REGEX) { //没有匹配到任何规则
       printf("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
       return false;
     }
@@ -135,7 +134,7 @@ static bool make_token(char *e) {
 
 
 
-//判断括号的匹配
+//判断括号的匹配 
 bool check_parentheses(int p, int q) {
   if(p >= q) {
     //右括号少于左括号
@@ -148,10 +147,10 @@ bool check_parentheses(int p, int q) {
   }
   int cnt = 0; //记录当前未匹配的左括号的数目
   for(int curr = p + 1; curr < q; curr++) {
-    if(tokens[curr].type == '(') {
+    if(tokens[curr].type == '(') { //遇到左括号，数目加1
       cnt++;
     }
-    if(tokens[curr].type == ')') {
+    if(tokens[curr].type == ')') { //遇到右括号，数目减1
       if(cnt != 0) {
         cnt--;
       }
@@ -217,13 +216,13 @@ uint32_t eval(int p, int q) {
   if(p == q) {
     int num;
     switch (tokens[p].type){
-      case TK_NUMBER:
+      case TK_NUMBER: //数字
         sscanf(tokens[p].str, "%d", &num);
         return num;
-      case TK_HEX:
+      case TK_HEX: //16进制数
         sscanf(tokens[p].str, "%x", &num);
         return num;
-      case TK_REG: 
+      case TK_REG: //寄存器
         for(int i = 0; i < 8; i++) {
           if(strcmp(tokens[p].str, regsl[i]) == 0) {
             return reg_l(i);
@@ -303,14 +302,14 @@ uint32_t expr(char *e, bool *success) {
   // TODO();
 
   // return 0;
-  if(tokens[0].type == '-') {
+  if(tokens[0].type == '-') { //处理负号
     tokens[0].type = TK_NEGATIVE;
   }
-  if(tokens[0].type == '*') {
-    tokens[0].type = TK_DEREF;
+  if(tokens[0].type == '*') { //处理指针
+    tokens[0].type = TK_DEREF; 
   }
   for(int i = 1; i < nr_token; i++) {
-    if(tokens[i].type == '-') {
+    if(tokens[i].type == '-') { 
       if(tokens[i - 1].type != TK_NUMBER && tokens[i - 1].type != ')') {
         tokens[i].type = TK_NEGATIVE;
       }
