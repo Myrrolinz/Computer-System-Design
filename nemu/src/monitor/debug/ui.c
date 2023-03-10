@@ -43,6 +43,7 @@ static int cmd_si(char *args) {
   if(args == NULL) {
     N = 1;
   }
+
   else {
     int temp = sscanf(args, "%lu", &N);
     if(temp <= 0) {
@@ -50,6 +51,7 @@ static int cmd_si(char *args) {
       return 0;
     }
   }
+
   cpu_exec(N);
   return 0;
 }
@@ -60,17 +62,20 @@ static int cmd_info(char *args) {
     printf("args error in cmd_info (miss args)\n");
     return 0;
   }
+
   int temp = sscanf(args, "%c", &s);
   if(temp <= 0) {
     //解析失败
     printf("args error in cmd_info\n");
     return 0;
   }
+
   if(s == 'w') {
     //打印监视点信息
     print_wp();;
     return 0;
   }
+
   if(s == 'r') {
     //打印寄存器
     //32bit
@@ -89,6 +94,7 @@ static int cmd_info(char *args) {
     }
     return 0;
   }
+
   //如果产生错误
   printf("args error in cmd_info\n");
   return 0;
@@ -102,12 +108,12 @@ static int cmd_x(char *args) {
     //解析失败
     printf("args error in cmd_si\n");
     return 0;
-  }
-  printf("Memory:");
-  for(int i = 0; i < nLen; i++) {
-    if(i % 4 == 0) {
+  } 
+  printf("Memory:"); 
+  for(int i = 0; i < nLen; i++) { 
+    if(i % 4 == 0) { 
       printf("\n0x%x:  0x%02x", addr + i, vaddr_read(addr + i, 1));
-    }  
+    } 
     else {
       printf("  0x%02x", vaddr_read(addr + i, 1));
     }
