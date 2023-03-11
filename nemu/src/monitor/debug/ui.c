@@ -56,7 +56,7 @@ static int cmd_si(char *args) {
   return 0;
 }
 
-static int cmd_info(char *args) {
+static int cmd_info(char *args) { //监视点信息查看
   char s;
   if(args == NULL) {
     printf("args error in cmd_info (miss args)\n");
@@ -135,12 +135,12 @@ static int cmd_p(char *args) {
   return 0;
 }
 
-static int cmd_w(char *args) {
+static int cmd_w(char *args) { //监视点的申请
   new_wp(args);
   return 0;
 }
 
-static int cmd_d(char* args) {
+static int cmd_d(char* args) { //监视点的删除
   //删除监视点,args为监视点编号
   int num = 0;
   int nRet = sscanf(args, "%d", &num);
@@ -149,7 +149,7 @@ static int cmd_d(char* args) {
     printf("args error in cmd_si\n");
     return 0;
   }
-  int r = free_wp(num);
+  int r = free_wp(num); //删除监视点
   if(r == false) {
     printf("error: no watchpoint %d\n", num);
   }
