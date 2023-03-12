@@ -32,7 +32,7 @@ void cpu_exec(uint64_t n) {
     /* TODO: check watchpoints here. */
     if(watch_wp() == false) { 
       nemu_state = NEMU_STOP; 
-    }
+    } 
 
 #endif
 
