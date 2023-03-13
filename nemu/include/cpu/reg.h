@@ -43,15 +43,15 @@ static inline int check_reg_index(int index) {
   return index;
 }
 
-#define reg_l(index) (cpu.gpr[check_reg_index(index)]._32)
-#define reg_w(index) (cpu.gpr[check_reg_index(index)]._16)
-#define reg_b(index) (cpu.gpr[check_reg_index(index) & 0x3]._8[index >> 2])
+#define reg_l(index) (cpu.gpr[check_reg_index(index)]._32)  //作用是检查index是否在0~7之间，如果不在则报错
+#define reg_w(index) (cpu.gpr[check_reg_index(index)]._16)  //如果在则返回cpu.gpr[index]._16
+#define reg_b(index) (cpu.gpr[check_reg_index(index) & 0x3]._8[index >> 2]) //如果在则返回cpu.gpr[index & 0x3]._8[index >> 2]
 
-extern const char* regsl[];
+extern const char* regsl[]; 
 extern const char* regsw[];
 extern const char* regsb[];
 
-static inline const char* reg_name(int index, int width) {
+static inline const char* reg_name(int index, int width) {  
   assert(index >= 0 && index < 8);
   switch (width) {
     case 4: return regsl[index];
