@@ -103,14 +103,14 @@ static int cmd_info(char *args) { //监视点信息查看
 static int cmd_x(char *args) {
   int nLen = 0;
   vaddr_t addr;
-  int temp = sscanf(args, "%d 0x%x", &nLen, &addr);
+  int temp = sscanf(args, "%d 0x%x", &nLen, &addr);  //sscanf()函数用于从字符串中读进与指定格式相符的数据
   if(temp <= 0) {
     //解析失败
     printf("args error in cmd_si\n");
     return 0;
   } 
   printf("Memory:"); 
-  for(int i = 0; i < nLen; i++) { 
+  for(int i = 0; i < nLen; i++) {  //nLen个字节
     if(i % 4 == 0) { 
       printf("\n0x%x:  0x%02x", addr + i, vaddr_read(addr + i, 1));
     } 

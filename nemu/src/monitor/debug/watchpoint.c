@@ -4,19 +4,19 @@
 #define NR_WP 32
 
 static WP wp_pool[NR_WP];
-static WP *head, *free_;
+static WP *head, *free_;  //head用于记录监视点链表的头指针，free_用于记录空闲监视点链表的头指针
 static int used_next;  //用于记录在head中下一个使用的wp的index
 static WP *wptemp;  //辅助wp结构
 
 void init_wp_pool() {
   int i;
   for (i = 0; i < NR_WP; i ++) { //初始化wp_pool
-    wp_pool[i].NO = i;
-    wp_pool[i].next = &wp_pool[i + 1];
-    wp_pool[i].old = 0;
-    wp_pool[i].hitNum = 0;
+    wp_pool[i].NO = i;  //记录索引信息
+    wp_pool[i].next = &wp_pool[i + 1]; //链接wp
+    wp_pool[i].old = 0; //初始化旧值
+    wp_pool[i].hitNum = 0; //初始化命中次数
   }
-  wp_pool[NR_WP - 1].next = NULL;
+  wp_pool[NR_WP - 1].next = NULL; //最后一个结点的next为NULL
 
   head = NULL;
   free_ = wp_pool;
@@ -39,7 +39,7 @@ bool new_wp(char *args) {
   used_next++; //记录索引信息 
   result -> next = NULL; //从链表中取出 
   strcpy(result -> e, args); 
-  result -> hitNum = 0; //初始化触发次数 
+  result -> hitNum = 0; //初始化命中次数 
   bool is_success; 
   result -> old = expr(result -> e, &is_success);  //计算旧的值
   if(is_success == false) { 
@@ -49,7 +49,7 @@ bool new_wp(char *args) {
 
   //对head链表进行更新
   wptemp = head; 
-  if(wptemp == NULL) { 
+  if(wptemp == NULL) { //加入已用链表：如果head为空则直接赋值
     head = result; 
   } 
   else { 
