@@ -137,8 +137,8 @@ static bool make_token(char *e) {
 //判断括号的匹配 
 bool check_parentheses(int p, int q) {
   if(p >= q) {
-    //右括号少于左括号
-    printf("error:p>=q in check_parntheses\n");
+    //右括号个数少于左括号
+    printf("error: p >= q in check_parntheses\n");
     return false;
   }
   if(tokens[p].type != '(' || tokens[q].type != ')'){
@@ -175,7 +175,7 @@ int findDominantOp(int p, int q) {
   int pos[5]={-1, -1, -1, -1, -1};
   for(int i = p; i < q; i++){
      if(level == 0) {
-        if(tokens[i].type == TK_AND || tokens[i].type == TK_OR) {
+        if(tokens[i].type == TK_AND || tokens[i].type == TK_OR) { //优先级最高的运算符
           pos[0] = i;
         }
         if(tokens[i].type == TK_EQ || tokens[i].type == TK_NEQ) {
@@ -187,7 +187,7 @@ int findDominantOp(int p, int q) {
         if(tokens[i].type == '*' || tokens[i].type == '/') {
           pos[3] = i;
         }
-        if(tokens[i].type == TK_NEGATIVE || tokens[i].type == TK_DEREF || tokens[i].type == '!') {
+        if(tokens[i].type == TK_NEGATIVE || tokens[i].type == TK_DEREF || tokens[i].type == '!') { //优先级最低的运算符
           pos[4] = i;
         }
       }
@@ -204,7 +204,7 @@ int findDominantOp(int p, int q) {
     }
   }
   printf("error in findDominantOp\n");
-  printf("[p=%d,q=%d]\n",p,q);
+  printf("[p=%d, q=%d]\n",p,q);
   assert(0);
 }
 
@@ -302,19 +302,21 @@ uint32_t expr(char *e, bool *success) {
   // TODO();
 
   // return 0;
-  if(tokens[0].type == '-') { //处理负号
+  if(tokens[0].type == '-') { //处理-
     tokens[0].type = TK_NEGATIVE;
   }
-  if(tokens[0].type == '*') { //处理指针
+  if(tokens[0].type == '*') { //处理-
     tokens[0].type = TK_DEREF; 
   }
   for(int i = 1; i < nr_token; i++) {
     if(tokens[i].type == '-') { 
+      // 如果前一个不是数字或者右括号，那么就是负号
       if(tokens[i - 1].type != TK_NUMBER && tokens[i - 1].type != ')') {
         tokens[i].type = TK_NEGATIVE;
       }
     }
     if(tokens[i].type == '*') {
+      // 如果前一个不是数字或者右括号，那么就是指针求值
       if(tokens[i - 1].type != TK_NUMBER && tokens[i - 1].type != ')') {
         tokens[i].type = TK_DEREF;
       }
