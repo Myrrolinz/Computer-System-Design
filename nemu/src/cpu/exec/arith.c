@@ -34,7 +34,7 @@ make_EHelper(add) {
 
 make_EHelper(sub) {
   // TODO();
-
+  
   eflags_modify();
   operand_write(id_dest, &t2);
   print_asm_template2(sub);

@@ -88,8 +88,8 @@ static inline void restart() {
 
 #ifdef DIFF_TEST
   init_qemu_reg();
-#endif
-}
+#endif 
+} 
 
 static inline void parse_args(int argc, char *argv[]) {
   int o;
