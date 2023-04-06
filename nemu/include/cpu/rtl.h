@@ -29,7 +29,7 @@ static inline void rtl_li(rtlreg_t* dest, uint32_t imm) {
   } \
   static inline void concat3(rtl_, name, i) (rtlreg_t* dest, const rtlreg_t* src1, int imm) { \
     *dest = concat(c_, name) (*src1, imm); \
-  }
+  } 
 
 
 make_rtl_arith_logic(add)
@@ -161,7 +161,7 @@ static inline void rtl_push(const rtlreg_t* src1) {
 
 static inline void rtl_pop(rtlreg_t* dest) {
   // dest <- M[esp]
-  // esp <- esp + 4
+  // esp <- esp + 4 
   // TODO();
   rtl_lm(dest, &cpu.esp, 4);
   rtl_addi(&cpu.esp, &cpu.esp, 4);
