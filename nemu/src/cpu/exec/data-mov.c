@@ -47,7 +47,6 @@ make_EHelper(popa) {
 
 make_EHelper(leave) {
   // TODO();
-
   rtl_mv(&cpu.esp, &cpu.ebp);
   rtl_pop(&cpu.ebp);
   print_asm("leave");
@@ -65,7 +64,6 @@ make_EHelper(cltd) {
     // TODO();
     rtl_sari(&cpu.edx, &cpu.eax, 31);
   }
-
   print_asm(decoding.is_operand_size_16 ? "cwtl" : "cltd");
 }
 
