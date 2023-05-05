@@ -67,4 +67,4 @@ void init_i8042() {
   i8042_data_port_base = add_pio_map(I8042_DATA_PORT, 4, i8042_io_handler);
   i8042_status_port_base = add_pio_map(I8042_STATUS_PORT, 1, i8042_io_handler);
   i8042_status_port_base[0] = 0x0;
-}
+} 
