@@ -14,7 +14,7 @@ static const char *keyname[256] __attribute__((used)) = {
 size_t events_read(void *buf, size_t len) {
   char buffer[40];
   int key = _read_key();
-  int down = false;
+  int down = 0;
   if(key & 0x8000) {
       key ^= 0x8000;
       down = 1;
@@ -30,7 +30,7 @@ size_t events_read(void *buf, size_t len) {
 	  return strlen(buffer);
   } 
   Log("strlen(event)>len, return 0");
-  return strlen(buf);
+  return 0;
 }
 
 static char dispinfo[128] __attribute__((used));
