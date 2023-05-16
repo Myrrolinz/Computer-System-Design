@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-enum {SEEK_SET, SEEK_CUR, SEEK_END};
+enum {SEEK_SET, SEEK_CUR, SEEK_END}; 
 
 size_t fs_filesz(int fd);
 int fs_open(const char* filename, int flags, int mode);
