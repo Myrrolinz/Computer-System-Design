@@ -36,10 +36,12 @@ typedef struct {
 
   struct bs {
     unsigned int CF:1;
+
     unsigned int one:1;
     unsigned int :4;
     unsigned int ZF:1;
-    unsigned int SF:1; // bit 0 ~ 7
+    unsigned int SF:1;
+
     unsigned int :1;
     unsigned int IF:1;
     unsigned int :1;
@@ -47,6 +49,16 @@ typedef struct {
     unsigned int :20;
   } eflags;
 
+  struct IDTR
+  {
+    /* data */
+    uint32_t base;
+    uint16_t limit; 
+  } idtr;
+  
+  rtlreg_t cs;
+  rtlreg_t es; // 配x64
+  rtlreg_t ds;
 } CPU_state;
 
 extern CPU_state cpu;

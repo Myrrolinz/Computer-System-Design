@@ -51,13 +51,3 @@ make_EHelper(nemu_trap) {
   diff_test_skip_qemu();
 #endif
 }
-
-// make_EHelper(endbr32)
-// {
-//   decinfo.seq_pc += 3;
-//   // rtl_push(&cpu.ebp);
-//   // rtl_mv(&cpu.eax,&cpu.esp);
-//   // s0=4;
-//   // rtl_sub(&cpu.esp,&cpu.esp, &s0);
-//   print_asm("endbr32");
-// }

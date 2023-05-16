@@ -82,14 +82,14 @@ static inline void load_img() {
 static inline void restart() {
   /* Set the initial instruction pointer. */
   cpu.eip = ENTRY_START;
-
+  cpu.cs = 8;
   unsigned int origin = 2;
   memcpy(&cpu.eflags, &origin, sizeof(cpu.eflags));
 
 #ifdef DIFF_TEST
   init_qemu_reg();
-#endif 
-} 
+#endif
+}
 
 static inline void parse_args(int argc, char *argv[]) {
   int o;
