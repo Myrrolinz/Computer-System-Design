@@ -43,7 +43,8 @@ int sys_lseek(int fd, off_t offset, int whence) {
 }
 
 int sys_brk(int addr) {
-  return 0;
+  extern int mm_brk(uint32_t new_brk);
+  return mm_brk(addr);
 }
 
 int sys_close(int fd){
