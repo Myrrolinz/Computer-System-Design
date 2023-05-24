@@ -2,7 +2,7 @@
 #include "fs.h"
 #include "memory.h"
 
-#define DEFAULT_ENTRY ((void *)0x8048000)
+#define DEFAULT_ENTRY ((void *)0x8048000) 
 
 extern uint8_t ramdisk_start;
 extern uint8_t ramdisk_end;

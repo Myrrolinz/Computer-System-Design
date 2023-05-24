@@ -71,16 +71,16 @@ void _map(_Protect *p, void *va, void *pa) {
     return;
   }
 
-  PDE *dir = (PDE*) p -> ptr;
+  PDE *dir = (PDE*) p -> ptr; // page directory
 	PTE *table = NULL;
-	PDE *pde = dir + PDX(va);
-	if(!(*pde & PTE_P)) {
+	PDE *pde = dir + PDX(va); // page directory entry
+	if(!(*pde & PTE_P)) { // page directory entry not exist
 		table = (PTE*) (palloc_f());
 		*pde = (uintptr_t) table | PTE_P;
 	}
-	table = (PTE*) PTE_ADDR(*pde);
-	PTE *pte = table + PTX(va);
-	*pte = (uintptr_t) pa | PTE_P;
+	table = (PTE*) PTE_ADDR(*pde); // page table
+	PTE *pte = table + PTX(va); // page table entry
+	*pte = (uintptr_t) pa | PTE_P; //pa是物理地址，这句作用是将物理地址转换成虚拟地址
 }
 
 void _unmap(_Protect *p, void *va) {
