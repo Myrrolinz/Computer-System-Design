@@ -28,10 +28,10 @@ void load_prog(const char *filename) {
 }
 
 int current_game = 0;
-void switch_current_game() {
-  current_game = 2 - current_game;
-  Log("current_game = %d", current_game);
-}
+void switch_current_game() { 
+  current_game = 2 - current_game; 
+  Log("current_game = %d", current_game); 
+} 
 
 _RegSet* schedule(_RegSet *prev) {
   if(current != NULL) {
