@@ -1,6 +1,10 @@
 #include "proc.h"
 #include "memory.h"
 
+#define _ROUND_MASK(x, y) ((__typeof__(x))((y)-1))
+#define ROUND_UP(x, y) ((((x)-1) | _ROUND_MASK(x, y))+1)
+#define ROUND_DOWN(x, y) ((x) & ~_ROUND_MASK(x, y))
+
 static void *pf = NULL;
 
 void* new_page(void) {
@@ -16,23 +20,19 @@ void free_page(void *p) {
 
 /* The brk() system call handler. */
 int mm_brk(uint32_t new_brk) {
-  if(current -> cur_brk == 0) {
-    current -> cur_brk = current -> max_brk = new_brk;
+  if (current->cur_brk == 0) {
+    current->cur_brk = current->max_brk = new_brk;
   }
   else {
-    if(new_brk > current -> max_brk) {
-      uint32_t first = PGROUNDUP(current -> max_brk);
-      uint32_t end = PGROUNDDOWN(new_brk);
-      if((new_brk & 0xfff) == 0) {
-        end -= PGSIZE;
+    if (new_brk > current->max_brk) {
+      uint32_t va = ROUND_UP(current->max_brk, PGSIZE);
+      while (va <= new_brk) {
+        _map(&current->as, (void *)va, new_page());
+        va += PGSIZE;
       }
-      for(uint32_t va = first; va <= end; va += PGSIZE) {
-        void *pa = new_page();
-        _map(&(current -> as), (void*)va, pa);
-      }
-      current -> max_brk = new_brk;
+      current->max_brk = new_brk;
     }
-    current -> cur_brk = new_brk;
+    current->cur_brk = new_brk;
   }
   return 0;
 }

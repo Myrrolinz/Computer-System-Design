@@ -1,21 +1,17 @@
 NAME = nanos-lite
 SRCS = $(shell find -L ./src/ -name "*.c" -o -name "*.cpp" -o -name "*.S")
 LIBS = klib
-
 include $(AM_HOME)/Makefile.app
 
 FSIMG_PATH = $(NAVY_HOME)/fsimg
 RAMDISK_FILE = build/ramdisk.img
 
-OBJCOPY_FLAG = --remove-section=.note.gnu.property -S --set-section-flags .bss=alloc, contents -O binary
-# OBJCOPY_FILE = $(NAVY_HOME)/tests/dummy/build/dummy-x86
-OBJCOPY_APP = $(NAVY_HOME)/tests/hello
-OBJCOPY_FILE = $(OBJCOPY_APP)/build/$(notdir $(OBJCOPY_APP))-$(ISA)
+OBJCOPY_FLAG = -S --set-section-flags .bss=alloc,contents -O binary
+OBJCOPY_FILE = $(NAVY_HOME)/tests/hello/build/hello-x86
 
 .PHONY: update update-ramdisk-objcopy update-ramdisk-fsimg update-fsimg
 
 update-ramdisk-objcopy:
-	$(MAKE) -s -C $(OBJCOPY_APP) ISA=$(ISA)
 	$(OBJCOPY) $(OBJCOPY_FLAG) $(OBJCOPY_FILE) $(RAMDISK_FILE)
 	touch src/files.h
 
