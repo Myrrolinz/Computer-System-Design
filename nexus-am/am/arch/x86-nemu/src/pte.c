@@ -65,52 +65,41 @@ void _switch(_Protect *p) {
   set_cr3(p->ptr);
 }
 
-void print(const char *s) {
-  for (; *s; s ++) {
-    _putc(*s);
-  }
-}
-
-void printd(uint32_t v) {
-  if (v == 0) {
+void _map(_Protect *p, void *va, void *pa) {
+  if(OFF(va) || OFF(pa)) {
+    // printf("page not aligned\n");
     return;
   }
-  printd(v >> 8);
-  char map[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-  _putc(map[(v>>4)&0xf]);
-  _putc(map[v&0xf]);
-}
 
-void _map(_Protect *p, void *va, void *pa) {
-  PDE *ppde = (PDE *)p->ptr + PDX(va);
-  if (!(*ppde & PTE_P)) {
-    *ppde = (uint32_t)palloc_f() | PTE_P;
-  }
-
-  PTE *ppte = (PTE *)PTE_ADDR(*ppde) + PTX(va);
-  *ppte = PTE_ADDR(pa) | PTE_P;
+  PDE *dir = (PDE*) p -> ptr; // page directory
+	PTE *table = NULL;
+	PDE *pde = dir + PDX(va); // page directory entry
+	if(!(*pde & PTE_P)) { // page directory entry not exist
+		table = (PTE*) (palloc_f());
+		*pde = (uintptr_t) table | PTE_P;
+	}
+	table = (PTE*) PTE_ADDR(*pde); // page table
+	PTE *pte = table + PTX(va); // page table entry
+	*pte = (uintptr_t) pa | PTE_P; //pa是物理地址，这句作用是将物理地址转换成虚拟地址
 }
 
 void _unmap(_Protect *p, void *va) {
 }
 
-#define push(v) *(--ptr)=(v)
-
 _RegSet *_umake(_Protect *p, _Area ustack, _Area kstack, void *entry, char *const argv[], char *const envp[]) {
-  uint32_t *ptr = ustack.end;
+  extern void* memcpy(void *, const void *, int);
+  int arg1 = 0;
+  char *arg2 = NULL;
+  memcpy((void*)ustack.end - 4, (void*)arg2, 4);
+  memcpy((void*)ustack.end - 8, (void*)arg2, 4);
+  memcpy((void*)ustack.end - 12, (void*)arg1, 4);
+  memcpy((void*)ustack.end - 16, (void*)arg1, 4);
 
-  for (int i = 0; i < 8; i++) {
-    push(0);
-  }
-
-  push(0x202); 
-  push(0x8);
-  push((uint32_t) entry);
-  push(0);
-  push(0x81);
-  for (int i = 0; i < 8; i++) {
-    push(0);
-  }
-
-  return (_RegSet *)ptr;
+  _RegSet tf;
+  tf.eflags = 0x02 | FL_IF;
+  tf.cs = 0;
+  tf.eip = (uintptr_t) entry;
+  void *ptf = (void*) (ustack.end - 16 - sizeof(_RegSet));
+  memcpy(ptf, (void*)&tf, sizeof(_RegSet));
+  return (_RegSet*) ptf;
 }

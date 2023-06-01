@@ -6,29 +6,27 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr) {
    * That is, use ``NO'' to index the IDT.
    */
 
-  uint32_t cs_wide = cpu.cs;
-  uint32_t idt_entry[2] = {0};
-  uint32_t routine_addr = 0;
-
-  // 'NO' sanity check
-  assert(NO >= 0 && NO * 8 < cpu.idtr.limit);
-
-  idt_entry[0] = vaddr_read(cpu.idtr.base + 8 * NO, 4);
-  idt_entry[1] = vaddr_read(cpu.idtr.base + 8 * NO + 4, 4);
+  // TODO();
+  memcpy(&t1, &cpu.eflags, sizeof(cpu.eflags));
+  rtl_li(&t0, t1);
+  rtl_push(&t0);
+  cpu.eflags.IF = 0;
+  rtl_push(&cpu.cs);
+  rtl_li(&t0, ret_addr);
+  rtl_push(&t0);
   
-  // 'present' bit check
-  assert(idt_entry[1] & 0x8000);
+  vaddr_t gate_addr = cpu.idtr.base + NO * sizeof(GateDesc);
+  // Log("%d %d %d\n", gate_addr, cpu.idtr.base, cpu.idtr.limit);
+  assert(gate_addr <= cpu.idtr.base + cpu.idtr.limit);
 
-  // get routine address from idt entry
-  routine_addr = (idt_entry[1] & 0xffff0000) | (idt_entry[0] & 0xffff);
-
-  rtl_push(&cpu.eflags.val);
-  rtl_push(&cs_wide);
-  rtl_push(&ret_addr);
-
-  cpu.eflags.IF = false;
-  decoding.jmp_eip = routine_addr;
-  decoding.is_jmp = true;
+  uint32_t off_15_0 = vaddr_read(gate_addr,2);
+  uint32_t off_32_16 = vaddr_read(gate_addr+sizeof(GateDesc)-2,2);
+  uint32_t target_addr = (off_32_16 << 16) + off_15_0;
+#ifdef DEBUG
+  Log("target_addr=0x%x",target_addr);
+#endif
+  decoding.is_jmp = 1;
+  decoding.jmp_eip = target_addr;
 }
 
 void dev_raise_intr() {

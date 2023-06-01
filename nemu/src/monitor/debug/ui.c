@@ -1,5 +1,5 @@
-#include "monitor/monitor.h"
 #include "monitor/expr.h"
+#include "monitor/monitor.h"
 #include "monitor/watchpoint.h"
 #include "nemu.h"
 
@@ -36,120 +36,125 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_help(char *args);
+
 static int cmd_si(char *args) {
-  if (!args) {
-    cpu_exec(1);
-    return 0;
+  uint64_t N = 0;
+  if(args == NULL) {
+    N = 1;
   }
-
-  int v;
-  int ret = sscanf(args, "%d", &v);
-  if (ret != 1) {
-    printf("invalid param '%s'\n", args);
-    return 0;
+  else {
+    int temp = sscanf(args, "%lu", &N);
+    if(temp <= 0) {
+      printf("args error in cmd_si\n");
+      return 0;
+    }
   }
-
-  cpu_exec(v);
+  cpu_exec(N);
   return 0;
 }
 
 static int cmd_info(char *args) {
-  if (!args) {
-    printf("need param\n");
+  char s;
+  if(args == NULL) {
+    printf("args error in cmd_info (miss args)\n");
     return 0;
   }
-  switch (*args) {
-    case 'r':
-      for (int i = 0; i < 4; i++) {
-        printf("%4s = 0x%08x    %4s = 0x%08x\n",
-            regsl[i], reg_l(i), regsl[i + 4], reg_l(i + 4));
-      }
-      printf("%4s = 0x%08x\n", "eip", cpu.eip);
-      printf("\n");
-      break;
-    case 'w':
-      for(WP *wp = wp_head(); wp; wp = wp->next) {
-        printf("%2d: %s\n", wp->NO, wp->expr);
-      }
-      break;
-    default:
-      printf("invalid param '%s'\n", args);
-      break;
-  }
-  return 0;
-}
-
-static int cmd_p(char *args) {
-  bool valid;
-  int result = expr(args, &valid);
-  if (!valid) {
-    printf("invalid expression\n");
+  int temp = sscanf(args, "%c", &s);
+  if(temp <= 0) {
+    //解析失败
+    printf("args error in cmd_info\n");
     return 0;
   }
-  printf("%d\n"
-         "0x%08x\n", result, result);
+  if(s == 'w') {
+    //打印监视点信息
+    print_wp();;
+    return 0;
+  }
+  if(s == 'r') {
+    //打印寄存器
+    //32bit
+    for(int i = 0; i < 8; i++) {
+      printf("%s  0x%x\n", regsl[i], reg_l(i));
+    }
+    printf("eip  0x%x\n", cpu.eip);
+    //16bit
+    for(int i = 0; i < 8; i++) {
+      printf("%s  0x%x\n", regsw[i], reg_w(i));
+    }
+    //8bit
+    for(int i = 0; i < 8; i++)
+    {
+      printf("%s  0x%x\n", regsb[i], reg_b(i));
+    }
+    printf("eflags:CF=%d,ZF=%d,SF=%d,IF=%d,OF=%d\n", cpu.eflags.CF, cpu.eflags.ZF, cpu.eflags.SF, cpu.eflags.IF, cpu.eflags.OF);
+    printf("CR0=0x%x, CR3=0x%x\n", cpu.CR0, cpu.CR3);
+    return 0;
+  }
+  //如果产生错误
+  printf("args error in cmd_info\n");
   return 0;
 }
 
 static int cmd_x(char *args) {
-  int n;
-  if (sscanf(args, "%d", &n) != 1) {
-    printf("invalid param '%s'\n", args);
+  int nLen = 0;
+  vaddr_t addr;
+  int temp = sscanf(args, "%d 0x%x", &nLen, &addr);
+  if(temp <= 0) {
+    //解析失败
+    printf("args error in cmd_si\n");
     return 0;
   }
-
-  char *p = strchr(args, ' ');
-  if (!p || !p[1]) {
-    printf("invalid param '%s'\n", args);
-    return 0;
-  }
-
-  bool valid;
-  int addr = expr(p + 1, &valid);
-  if (!valid) {
-    printf("invalid expression\n");
-    return 0;
-  }
-  addr &= ~0xF;
-
-  int cnt = 0;
-  for (int i = 0; i < (n + 3) / 4; i++) {
-    printf ("0x%08x : ", addr + i * 0x10);
-    for (int j = 0; j < 4 && cnt < n; j++) {
-      printf("%08x  ", vaddr_read(addr + cnt++, 4));
+  printf("Memory:");
+  for(int i = 0; i < nLen; i++) {
+    if(i % 4 == 0) {
+      printf("\n0x%x:  0x%02x", addr + i, vaddr_read(addr + i, 1));
+    }  
+    else {
+      printf("  0x%02x", vaddr_read(addr + i, 1));
     }
-    printf("\n");
+  }
+  printf("\n");
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  //表达式求值
+  bool is_success;
+  int temp = expr(args, &is_success);
+  if(is_success == false) {
+    printf("error in expr()\n");
+  }
+  else {
+    printf("the value of expr is:%d\n", temp);
   }
   return 0;
 }
 
 static int cmd_w(char *args) {
-  if (!args) {
-    printf("need param\n");
-    return 0;
-  }
-  WP *alloc = new_wp();
-  strcpy(alloc->expr, args);
+  new_wp(args);
   return 0;
 }
 
-static int cmd_d(char *args) {
-  int delete_ID;
-  if (sscanf(args, "%d", &delete_ID) != 1) {
-    printf("invalid param '%s'\n", args);
+static int cmd_d(char* args) {
+  //删除监视点,args为监视点编号
+  int num = 0;
+  int nRet = sscanf(args, "%d", &num);
+  if(nRet <= 0) {
+    //解析失败
+    printf("args error in cmd_si\n");
     return 0;
   }
-  for(WP *wp = wp_head(); wp; wp = wp->next) {
-    if (wp->NO == delete_ID) {
-      free_wp(wp);
-      return 0;
-    }
+  int r = free_wp(num);
+  if(r == false) {
+    printf("error: no watchpoint %d\n", num);
   }
-  printf("invalid ID: %d\n", delete_ID);
+  else {
+    printf("Success delete watchpoint %d\n", num);
+  }
   return 0;
 }
 
-static int cmd_help(char *args);
 
 static struct {
   char *name;
@@ -161,12 +166,13 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
-  { "si", "Single step", cmd_si },
-  { "info", "Show nemu states", cmd_info },
-  { "p", "Evaluate an expression", cmd_p },
-  { "x", "Memory inspection", cmd_x },
-  { "w", "Add a watchpoint", cmd_w },
-  { "d", "Delete a watchpoint", cmd_d },
+
+  { "si", "args:[N]; exectue [N] instructions step by step", cmd_si}, //让程序单步执行 N 条指令后暂停执行, 当N没有给出时, 缺省为1
+  { "info", "args:r/w;print information about register or watch point ", cmd_info}, //打印寄存器状态
+  { "x", "x [N] [EXPR];sacn the memory", cmd_x }, //内存扫描
+  { "p", "expr", cmd_p}, //表达式
+  { "w", "set the watchpoint", cmd_w}, //添加监视点
+  { "d", "delete the watchpoint", cmd_d} //删除监视点
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
