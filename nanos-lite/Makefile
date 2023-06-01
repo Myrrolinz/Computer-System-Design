@@ -12,6 +12,7 @@ OBJCOPY_FLAG = --remove-section=.note.gnu.property -S --set-section-flags .bss=a
 OBJCOPY_APP = $(NAVY_HOME)/tests/hello
 OBJCOPY_FILE = $(OBJCOPY_APP)/build/$(notdir $(OBJCOPY_APP))-$(ISA)
 
+
 .PHONY: update update-ramdisk-objcopy update-ramdisk-fsimg update-fsimg
 
 update-ramdisk-objcopy:
