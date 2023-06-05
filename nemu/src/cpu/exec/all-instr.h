@@ -64,3 +64,4 @@ make_EHelper(mov_cr2r);
 
 make_EHelper(shrd);
 make_EHelper(shld);
+ 
