@@ -5,12 +5,12 @@
 #include "common.h"
 typedef int FLOAT;
 
-static inline int F2int(FLOAT a) {
-  if ((a & 0x80000000) == 0) {
-    return a >> 16;
+static inline int F2int(FLOAT a) {//浮点数转整数
+  if ((a & 0x80000000) == 0) {//正数
+    return a >> 16;//右移16位
   }
   else {
-    return -((-a) >> 16);
+    return -((-a) >> 16);//负数
   }
 }
 
